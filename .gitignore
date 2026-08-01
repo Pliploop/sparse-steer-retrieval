@@ -20,7 +20,7 @@ htmlcov/
 .coverage*
 
 # Data, checkpoints, and experiment outputs
-data/
+/data/
 logs/
 results/
 wandb/
