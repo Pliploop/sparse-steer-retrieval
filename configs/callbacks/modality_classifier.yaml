@@ -1,0 +1,22 @@
+# ModalityClassifierCallback configuration
+# Trains per-concept logistic regression classifiers to distinguish audio vs text
+
+modality_classifier:
+  _target_: steerable_retrieval.callbacks.energy.ModalityClassifierCallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null  # null = only check epochs
+  every_n_epochs: 1     # Run every epoch
+
+  # Logging prefix
+  prefix: modality_classifier
+
+  # Maximum samples per modality (to speed up training)
+  max_samples: 10000
+
+  # Fraction of data to use for testing
+  test_fraction: 0.2

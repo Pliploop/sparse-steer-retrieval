@@ -1,0 +1,4 @@
+# Placeholder audio encoder for training on pre-extracted embeddings.
+# With data.preextracted_features=true the audio tower is never called, so we avoid
+# loading a heavy encoder (and a second MuQ-MuLan instance) into memory.
+_target_: torch.nn.Identity

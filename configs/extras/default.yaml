@@ -1,0 +1,13 @@
+# @package _global_
+
+# Default extras configuration
+extras:
+  # Ignore warnings
+  ignore_warnings: false
+  
+  # Enforce tags from command line
+  enforce_tags: false
+  
+  # Print config tree
+  print_config: true
+

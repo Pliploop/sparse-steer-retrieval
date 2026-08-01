@@ -1,0 +1,13 @@
+defaults:
+  - model_summary
+  - _self_
+  - monitor
+  - model_checkpoint
+  - progress_bar
+  
+
+# Minimal callbacks for SAE training
+# Remove obsolete callbacks that reference steerable_retrieval.callbacks
+
+model_summary:
+  max_depth: 1

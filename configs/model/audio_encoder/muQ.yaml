@@ -1,0 +1,6 @@
+_target_: steerable_retrieval.models.encoders.muq.MuQAudioEncoder
+model_name: OpenMuQ/MuQ-MuLan-large
+device: cuda
+freeze: true
+ckpt_path: null
+sampling_rate: 24000

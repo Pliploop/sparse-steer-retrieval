@@ -1,0 +1,27 @@
+# @package model
+# Vanilla SAE configuration
+# Uses standard ReLU activation with L1 sparsity
+
+sae_encoder:
+  _target_: steerable_retrieval.models.sae.encoders.VanillaSAEEncoder
+  act_size: 512  # Input feature dimension (audio + text concatenated)
+  dict_size: 8192  # Dictionary size (number of features)
+  device: cuda
+  input_unit_norm: false
+  seed: null
+  concat_dim: -1
+
+sae_decoder:
+  _target_: steerable_retrieval.models.sae.decoders.SAEDecoder
+  dict_size: 8192  # Must match sae_encoder.dict_size
+  act_size: 512  # Must match sae_encoder.act_size
+  device: cuda
+  input_unit_norm: false
+  seed: null
+
+penalty: null  # No penalty for vanilla SAE (or use VanillaPenalty)
+
+loss_fn:
+  _target_: steerable_retrieval.models.utils.losses.VanillaSAELoss
+  l1_coeff: 0.001
+  l2_coeff: 1.0

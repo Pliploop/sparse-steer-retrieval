@@ -1,0 +1,30 @@
+# @package model
+# OMP (Orthogonal Matching Pursuit) SAE configuration
+# Encoder uses OMP + NNLS for sparse codes; no gradient through encoder. Use penalty=null.
+
+sae_encoder:
+  _target_: steerable_retrieval.models.sae.encoders.OMPEncoder
+  act_size: 512
+  dict_size: 4096
+  k: 5  # Number of OMP iterations (atoms per sample)
+  dropout: null  # Optional: float in [0,1] to drop dictionary rows at train time
+  max_iter: 10  # NNLS iterations per OMP step
+  device: cuda
+  input_unit_norm: true
+  seed: null
+  concat_dim: -1
+
+sae_decoder:
+  _target_: steerable_retrieval.models.sae.decoders.SAEDecoder
+  dict_size: 4096  # Must match sae_encoder.dict_size
+  act_size: 512  # Must match sae_encoder.act_size
+  device: cuda
+  input_unit_norm: true
+  seed: null
+
+penalty: null  # OMP encoder already outputs sparse codes
+
+loss_fn:
+  _target_: steerable_retrieval.models.utils.losses.VanillaSAELoss
+  l1_coeff: 0
+  l2_coeff: 1.0

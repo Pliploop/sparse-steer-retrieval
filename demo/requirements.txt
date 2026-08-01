@@ -1,0 +1,24 @@
+# Hugging Face ZeroGPU Space runtime deps. The steerable_retrieval package is vendored
+# into the Space at push time (see demo/hf/push_all.py), so no pip install of it is needed.
+#
+# huggingface_hub MUST stay <1.0: 1.x removed `HfFolder`, which gradio 4.x imports in
+# gradio/oauth.py, so a 1.x install breaks the Space at `import gradio`.
+gradio==4.44.1
+# Keep Gradio 4.44.1 on the FastAPI/Starlette API it expects. Newer
+# Starlette releases changed Jinja2Templates.TemplateResponse argument
+# handling, which can make Gradio's landing page crash with:
+# TypeError: unhashable type: 'dict'
+fastapi==0.112.4
+starlette==0.38.6
+huggingface_hub>=0.25,<1.0
+spaces
+torch
+torchaudio
+numpy
+muq
+transformers<5          # v5 requires huggingface_hub>=1.0, which conflicts with the pin above
+hydra-core
+omegaconf
+einops
+soundfile
+scikit-learn

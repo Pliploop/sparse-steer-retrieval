@@ -1,0 +1,17 @@
+# Matryoshka with BatchTopK selection
+# Combines Matryoshka nested groups with batch-level TopK sparsity
+
+_target_: steerable_retrieval.models.sae.matryoshka.Matryoshka
+
+# Group sizes define the nested structure
+# Each group contains progressively more features
+# Example: [64, 128, 256, 512] means:
+#   - Group 0: first 64 features
+#   - Group 1: next 128 features (total 192)
+#   - Group 2: next 256 features (total 448)
+#   - Group 3: next 512 features (total 960)
+group_sizes: [64, 128, 256, 512]
+
+# TopK selection across batch (similar to BatchTopKSAE)
+# If None, uses all activations
+top_k: 10

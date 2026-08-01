@@ -1,0 +1,19 @@
+# BridgeScoreCallback configuration
+# Computes bridge scores (cross-modal connections) from SAE activations
+
+bridge:
+  _target_: steerable_retrieval.callbacks.energy.BridgeScoreCallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null  # null = only check epochs
+  every_n_epochs: 1    # Run every epoch
+
+  # Logging prefix
+  prefix: bridge
+
+  # Number of top edges for summary statistics
+  topk_edges: 200

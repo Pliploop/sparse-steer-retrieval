@@ -1,0 +1,6 @@
+# https://lightning.ai/docs/pytorch/latest/api/lightning.pytorch.callbacks.RichProgressBar.html
+
+progress_bar:
+  _target_: lightning.pytorch.callbacks.RichProgressBar
+  # tqdm (fallback for non-TTY / redirected SLURM logs):
+  # _target_: lightning.pytorch.callbacks.TQDMProgressBar

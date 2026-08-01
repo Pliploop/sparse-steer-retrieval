@@ -1,0 +1,28 @@
+# @package model
+# Matryoshka BatchTopK SAE configuration (Zaigrajew et al., 2025)
+# Combines nested feature groups (Matryoshka) with global batch-level TopK sparsity.
+# dict_size = sum(group_sizes) = 4096
+
+sae_encoder:
+  _target_: steerable_retrieval.models.sae.encoders.MatryoshkaBatchTopKSAEEncoder
+  act_size: 512
+  group_sizes: [256, 256, 512, 1024, 2048]
+  top_k: 5
+  threshold_momentum: 0.9
+  input_unit_norm: true
+
+sae_decoder:
+  _target_: steerable_retrieval.models.sae.decoders.SAEDecoder
+  dict_size: 4096  # sum(group_sizes)
+  act_size: 512
+  input_unit_norm: true
+
+loss_fn:
+  _target_: steerable_retrieval.models.utils.losses.MatryoshkaBatchTopKSAELoss
+  group_sizes: ${model.sae_encoder.group_sizes}
+  l1_coeff: 0
+  l2_coeff: 1.0
+  aux_penalty: 0.05
+  top_k_aux: 512
+  n_batches_to_dead: 128
+  weighting: reverse  # 'uniform' (UW) or 'reverse' (RW)

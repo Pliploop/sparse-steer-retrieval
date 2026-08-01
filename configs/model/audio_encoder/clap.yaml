@@ -1,0 +1,5 @@
+_target_: steerable_retrieval.models.encoders.clap.CLAPAudioEncoder
+model_name: laion/clap-htsat-fused
+freeze: true
+ckpt_path: null
+sampling_rate: 48000

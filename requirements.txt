@@ -1,0 +1,39 @@
+# Sparse Steerable Retrieval — dependencies (draft)
+#
+# GPU builds of torch/torchaudio come from the PyTorch CUDA index.
+#
+# Setup (in a gpushell so torch sees CUDA): run `bash setup.sh`, which creates a
+# conda env (default name "steer"), installs uv, and runs `uv pip install` on this
+# file. Manual equivalent:
+#   conda create -n steer python=3.11 -y && conda activate steer
+#   pip install uv && uv pip install -r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu124
+
+# --- core steering API (Slider) ---
+torch==2.5.1
+numpy
+
+# --- audio/text encoders + audio decoding ---
+torchaudio==2.5.1
+soundfile                # audio I/O + metadata (torchaudio.info is the mp3 fallback)
+muq                      # MuQ-MuLan audio/text towers
+transformers             # CLAP encoders
+
+# --- training / config / logging ---
+lightning
+hydra-core
+omegaconf
+dora_search
+rootutils
+wandb
+einops
+scikit-learn
+pandas
+tqdm
+
+# --- optional: OMP / Matching-Pursuit SAE encoders + sparse metrics ---
+overcomplete
+matplotlib<3.9           # overcomplete's viz uses plt.cm.get_cmap, removed in 3.9
+
+# --- optional: S3 checkpoint/config loading in experiments/ ---
+boto3

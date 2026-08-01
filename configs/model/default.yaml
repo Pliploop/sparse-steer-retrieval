@@ -1,0 +1,33 @@
+defaults:
+  - sae: vanilla
+  - audio_encoder: default
+  - text_encoder: default
+  - ~matryoshka: null  # Optional: set to 'default' or 'batch_topk' to enable
+
+_target_: steerable_retrieval.models.sae.sae.LightningSAE
+
+# Model checkpoint and freezing
+ckpt_path: null
+freeze: false
+
+# Optimizer configuration (will be instantiated in configure_optimizers with model parameters)
+# Using _partial_ to prevent Hydra from instantiating it during model creation
+# Using _partial_ to prevent Hydra from instantiating it during model creation
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.0001
+  weight_decay: 0.0001
+  betas: [0.9, 0.999]
+  # Note: 'params' will be added automatically in configure_optimizers()
+
+# Learning rate scheduler configuration (will be instantiated in configure_optimizers with optimizer)
+# Using _partial_ to create a partial function instead of instantiating during model creation
+scheduler:
+  _target_: steerable_retrieval.models.utils.schedulers.CosineDecayWithLinearWarmup
+  _partial_: true
+  warmup_steps: 10000
+  max_steps: ${trainer.max_steps}
+  base_lr: 0.0001
+  final_lr: 0.00001
+  # Note: 'optimizer' will be added automatically in configure_optimizers()

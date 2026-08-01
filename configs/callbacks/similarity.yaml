@@ -1,0 +1,22 @@
+# SimLoggerCallback configuration
+# Logs distributions of pairwise cosine similarities between embeddings
+
+similarity:
+  _target_: steerable_retrieval.callbacks.energy.SimLoggerCallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null  # null = only check epochs
+  every_n_epochs: 1    # Run every epoch
+
+  # Maximum samples to use for similarity computation (subsamples if larger)
+  max_samples: 2048
+
+  # Number of histogram bins
+  n_bins: 50
+
+  # Logging prefix
+  prefix: similarity

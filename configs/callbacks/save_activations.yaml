@@ -1,0 +1,13 @@
+# SaveActivationsCallback configuration
+# Saves validation embeddings, preactivations, activations, and reconstructions
+# to per-tensor .pt files under activations/<dataset>/<modality>/<tensor_name>/.
+
+save_activations:
+  _target_: steerable_retrieval.callbacks.save.SaveActivationsCallback
+
+  # Save to the same directory as model checkpoints (uploaded by SageMaker)
+  save_dir: ${paths.ckpt_dir}
+
+  # Frequency control
+  every_n_steps: null
+  every_n_epochs: 1

@@ -1,0 +1,32 @@
+
+_target_: lightning.pytorch.trainer.Trainer
+
+# Auto-detect available devices
+accelerator: auto
+strategy: auto  # Will use ddp if multiple GPUs available
+devices: auto  # Use all available GPUs, or 1 if only CPU
+num_nodes: 1
+
+# Inference settings
+precision: null
+inference_mode: true
+use_distributed_sampler: true
+
+# Logging and callbacks (minimal for local testing)
+logger: null
+callbacks: null
+enable_progress_bar: true
+enable_model_summary: false
+enable_checkpointing: false
+
+# No training limits needed for inference
+max_epochs: null
+max_steps: 10000000000
+fast_dev_run: false
+
+# Other settings
+num_sanity_val_steps: 0
+deterministic: null
+benchmark: null
+sync_batchnorm: false
+

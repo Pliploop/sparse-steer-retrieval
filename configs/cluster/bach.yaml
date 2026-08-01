@@ -1,0 +1,32 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py cluster=gaia
+
+defaults:
+  - override /paths: default
+  - override /trainer: gpu
+
+data:
+  num_workers: 6
+
+model:
+  compile: false  # GTX 1080 are too old for the Triton compiler
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+paths:
+  data_dir: /home/data2/datasets
+
+trainer:
+  accelerator: gpu
+  strategy: ddp_find_unused_parameters_true  # TODO: actually find unused parameters
+  devices:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+  num_nodes: 1
+  sync_batchnorm: True

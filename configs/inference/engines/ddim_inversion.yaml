@@ -1,0 +1,4 @@
+# DDIM Inversion Edit Engine
+_target_: steerable_retrieval.models.ldm.engines.DDIMInversionEditEngine
+# Note: backbone, text_encoder, and guidance_engine will be set automatically from the model
+

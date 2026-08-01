@@ -1,0 +1,7 @@
+# DDP Steer Edit Engine (SteerMusic-style editing)
+_target_: steerable_retrieval.models.ldm.engines.DDPSteer
+# Note: backbone, text_encoder, and guidance_engine will be set automatically from the model
+weight_aug: 2  # Weight augmentation factor for gradient computation
+validation_step: 400  # Step interval for validation/saving intermediate results
+latent_size: null  # Optional latent size. If None, will be inferred from start_latents
+

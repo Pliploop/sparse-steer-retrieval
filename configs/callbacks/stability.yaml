@@ -1,0 +1,21 @@
+# CrossRunStabilityCallback configuration
+# Deprecated for training-time use.
+# Stability is now intended to run as an offline processing experiment
+# (see configs/experiment/stability.yaml and steerable_retrieval/experiments/run_stability.py).
+
+_target_: steerable_retrieval.callbacks.energy.CrossRunStabilityCallback
+
+# Frequency control
+every_n_steps: null  # null = only check epochs
+every_n_epochs: 1    # Run every epoch
+
+# List of checkpoint paths to compare against
+# Supports local paths and s3:// paths
+checkpoint_paths: []
+
+# Optional: compute stability on top-K energetic concepts
+# If null, computes stability on all concepts
+topk_by_energy: 512
+
+# Logging prefix
+prefix: stability

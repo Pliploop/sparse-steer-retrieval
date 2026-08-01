@@ -1,0 +1,4 @@
+# CFG (Classifier-Free Guidance) Engine
+_target_: steerable_retrieval.models.ldm.engines.CFGGuidanceEngine
+# Note: backbone will be set automatically from the model
+

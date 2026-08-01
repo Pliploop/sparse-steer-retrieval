@@ -1,0 +1,14 @@
+# @package _global_
+
+# CLAP encoder extract from folder configuration
+
+
+# Data overrides - folder extraction (no specific task)
+data:
+  task: null
+  task_kwargs:
+    data_path: ${paths.data_dir}/audio
+  preextracted_features: false
+  truncate_preextracted: 64
+  batch_size: 32
+  num_workers: 4

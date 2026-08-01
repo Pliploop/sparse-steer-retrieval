@@ -1,0 +1,6 @@
+_target_: steerable_retrieval.models.encoders.clap.CLAPAudioEncoder
+model_name: laion/larger_clap_music
+device: cuda
+freeze: true
+ckpt_path: null
+sampling_rate: 48000

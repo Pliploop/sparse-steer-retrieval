@@ -1,0 +1,19 @@
+# EnergyCallback configuration
+# Computes energy metrics from SAE activations
+
+energy:
+  _target_: steerable_retrieval.callbacks.energy.EnergyCallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null  # null = only check epochs
+  every_n_epochs: 1    # Run every epoch
+
+  # TopK for energy fraction computation
+  topk: 512
+
+  # Logging prefix
+  prefix: energy

@@ -1,0 +1,31 @@
+# @package _global_
+# Main model: BatchTopK SAE trained on pre-extracted MuQ-MuLan audio embeddings (music4all).
+# Audio-only SAE (paper Section 3.1). Sweep sparsity via model.sae_encoder.top_k.
+#
+#   python steerable_retrieval/train.py experiment=train_music4all_muq_batchtopk model.sae_encoder.top_k=10
+
+defaults:
+  - override /data: music4all
+  - override /model/sae: batch_topk
+  - override /model/audio_encoder: identity
+  - override /model/text_encoder: muq
+  - override /callbacks: full
+  - _self_
+
+tags: ["music4all", "muq", "batchtopk", "sae"]
+seed: 42
+
+model:
+  preextracted_features: true   # audio arrives as 512-d embeddings; skip the audio tower
+  data_mixing_ratio: 0.0        # train the SAE on audio embeddings only
+
+trainer:
+  max_steps: 500000              # paper training budget
+  check_val_every_n_epoch: 1
+  precision: 16-mixed
+
+logger:
+  wandb:
+    project: steerable-retrieval
+    entity: jul-guinot
+    tags: ${tags}

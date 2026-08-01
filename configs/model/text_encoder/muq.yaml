@@ -1,0 +1,5 @@
+_target_: steerable_retrieval.models.encoders.muq.MuQTextEncoder
+model_name: OpenMuQ/MuQ-MuLan-large
+device: cuda
+freeze: true
+ckpt_path: null

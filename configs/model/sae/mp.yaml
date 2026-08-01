@@ -1,0 +1,26 @@
+# @package model
+# Matching Pursuit (MP) SAE configuration
+# Greedy MP: at each iteration pick best atom, add to codes, subtract from residual. No NNLS. Use penalty=null.
+
+sae_encoder:
+  _target_: steerable_retrieval.models.sae.encoders.MPEncoder
+  act_size: 512
+  dict_size: 4096
+  k: 5  # Number of MP iterations (atoms per sample)
+  dropout: null  # Optional: float in [0,1] to drop dictionary rows at train time
+  input_unit_norm: true
+  
+sae_decoder:
+  _target_: steerable_retrieval.models.sae.decoders.SAEDecoder
+  dict_size: 4096  # Must match sae_encoder.dict_size
+  act_size: 512  # Must match sae_encoder.act_size
+  input_unit_norm: true
+  
+penalty: null  # MP encoder already outputs sparse codes
+
+loss_fn:
+  _target_: steerable_retrieval.models.utils.losses.VanillaSAELoss
+  l1_coeff: 0
+  l2_coeff: 1.0
+
+tied: True

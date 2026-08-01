@@ -1,0 +1,35 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py cluster=gaia
+
+defaults:
+  - override /paths: default
+  - override /trainer: gpu
+
+# on the cluster we do not use rich
+callbacks:
+  progress_bar:
+    _target_: lightning.pytorch.callbacks.TQDMProgressBar
+
+# automatically set the number of workers to the number of CPUs reserved by Bob Slurm
+data:
+  num_workers: ${oc.decode:${oc.env:SLURM_CPUS_PER_TASK,0}}
+  local_dir: false
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+paths:
+  root_dir: /group/project103/cslparis/ar
+  pretrained: ./pretrained
+
+trainer:
+  accelerator: gpu
+  devices: ${oc.decode:${oc.env:SLURM_NTASKS_PER_NODE,1}}
+  plugins:
+    _target_: src.utils.mpi.MPISlurmEnvironment
+  precision: bf16-mixed
+  strategy:
+    _target_: src.utils.mpi.FileInitStrategy
+    shared_file: ${paths.output_dir}/${oc.env:SLURM_JOB_ID,null}.shared
+    devices: ${trainer.devices}

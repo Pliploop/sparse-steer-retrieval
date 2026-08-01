@@ -1,0 +1,37 @@
+# @package _global_
+
+# specify here default configuration
+# order of defaults determines the order in which configs override each other
+defaults:
+  - _self_
+  - data: extract_features_CLAP
+  - trainer: default
+  - model: default
+  - paths: default
+  - hydra: default
+  - dora: default
+
+  # optional local config for machine/user specific settings
+  # it's optional since it doesn't need to exist and is excluded from version control
+  - optional local: default
+
+  # debugging config (enable through command line, e.g. `python extract_dataset.py debug=default)
+  - debug: null
+
+# task name, determines output directory path
+task_name: "extract_feature"
+
+# seed for random number generators in pytorch, numpy and python.random
+seed: 42
+
+# device for feature extraction
+device: cuda:0
+
+# extract-specific parameters (can be overridden in extract_features subconfigs)
+save_dir: ${paths.output_dir}
+root_path: ${paths.data_dir}/audio
+extract_method: forward
+out_key: null
+hop: 240000
+limit_n: null
+save: true

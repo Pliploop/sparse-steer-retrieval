@@ -1,0 +1,16 @@
+# Default Matryoshka configuration
+# Matryoshka creates nested groups of features for progressive reconstruction
+
+_target_: steerable_retrieval.models.sae.matryoshka.Matryoshka
+
+# Group sizes define the nested structure
+# Each group contains progressively more features
+# Example: [64, 128, 256] means:
+#   - Group 0: first 64 features
+#   - Group 1: next 128 features (total 192)
+#   - Group 2: next 256 features (total 448)
+group_sizes: [64, 128, 256, 512]
+
+# Optional: TopK selection (for BatchTopK style)
+# If None, uses all activations
+top_k: null

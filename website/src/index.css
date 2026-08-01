@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+@layer components {
+  /* Card recipe: tinted fill, thin coloured border, generous radius. */
+  .card {
+    @apply rounded-2xl border p-5 transition-colors duration-300;
+  }
+
+  .glass {
+    @apply rounded-2xl border border-white/50 bg-white/60 backdrop-blur-xl
+           dark:border-white/10 dark:bg-neutral-900/50;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-neutral-300 px-4 py-2 text-sm
+           transition-colors duration-200 hover:border-neutral-900 hover:bg-neutral-900 hover:text-white
+           dark:border-neutral-700 dark:hover:border-neutral-200 dark:hover:bg-neutral-100 dark:hover:text-neutral-900;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+}
+
+/* The concept slider: an ultra-minimal native range. JS sets --track (the fill
+   gradient) and --accent (thumb colour). */
+input[type='range'].steer-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--track, #e5e5e5);
+  outline: none;
+  cursor: pointer;
+}
+input[type='range'].steer-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 15px;
+  width: 15px;
+  border-radius: 9999px;
+  background: var(--accent, #7b3ff2);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.22);
+  transition: transform 0.12s ease;
+}
+input[type='range'].steer-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+input[type='range'].steer-range::-moz-range-thumb {
+  height: 15px;
+  width: 15px;
+  border-radius: 9999px;
+  background: var(--accent, #7b3ff2);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+:root[data-theme='dark'] input[type='range'].steer-range::-webkit-slider-thumb,
+.dark input[type='range'].steer-range::-webkit-slider-thumb {
+  border-color: #0a0a0a;
+}

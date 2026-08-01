@@ -1,0 +1,50 @@
+name: Deploy website
+
+# Builds website/ and force-publishes the static site to the `gh-pages` branch.
+# Runs when you push the site to main, or on manual dispatch.
+#
+# First run creates the gh-pages branch. Then, one-time:
+#   repo Settings -> Pages -> Build and deployment -> Deploy from a branch
+#   -> Branch: gh-pages / (root).
+# Served at https://<user>.github.io/sparse-steer-retrieval/ (base matches).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install (from lockfile)
+        working-directory: website
+        run: npm ci
+
+      - name: Build
+        working-directory: website
+        run: npm run build
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: website/dist
+          publish_branch: gh-pages

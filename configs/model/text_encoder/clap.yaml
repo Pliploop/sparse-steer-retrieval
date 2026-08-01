@@ -1,0 +1,5 @@
+_target_: steerable_retrieval.models.encoders.clap.CLAPTextEncoder
+model_name: laion/clap-htsat-fused
+device: cuda
+freeze: true
+ckpt_path: null

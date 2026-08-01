@@ -1,0 +1,19 @@
+# ModalityScoreCallback configuration
+# Computes modality scores (audio vs text) from SAE activations
+
+modality:
+  _target_: steerable_retrieval.callbacks.energy.ModalityScoreCallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null  # null = only check epochs
+  every_n_epochs: 1     # Run every epoch
+
+  # Epsilon for numerical stability
+  eps: 1e-12
+
+  # Logging prefix
+  prefix: modality

@@ -1,0 +1,30 @@
+# @package model
+# JumpReLU SAE configuration
+# Uses learnable threshold activation function
+
+sae_encoder:
+  _target_: steerable_retrieval.models.sae.encoders.JumpReLUSAEEncoder
+  act_size: 768  # Input feature dimension (audio + text concatenated)
+  dict_size: 8192  # Dictionary size (number of features)
+  bandwidth: 0.1  # Bandwidth for smooth threshold
+  device: cuda
+  input_unit_norm: false
+  use_pre_enc_bias: false  # Whether to subtract b_dec before encoding
+  seed: null
+  concat_dim: -1
+
+sae_decoder:
+  _target_: steerable_retrieval.models.sae.decoders.SAEDecoder
+  dict_size: 8192  # Must match sae_encoder.dict_size
+  act_size: 768  # Must match sae_encoder.act_size
+  device: cuda
+  input_unit_norm: false
+  seed: null
+
+penalty: null  # No penalty needed for JumpReLU (handled in encoder)
+
+loss_fn:
+  _target_: steerable_retrieval.models.utils.losses.JumpReLUSAELoss
+  l1_coeff: 0.001
+  l2_coeff: 1.0
+  bandwidth: 0.1  # Should match sae_encoder.bandwidth

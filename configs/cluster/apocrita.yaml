@@ -1,0 +1,30 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py cluster=gaia
+
+defaults:
+  - override /paths: default
+  - override /trainer: gpu
+
+# automatically set the number of workers to the number of CPUs reserved by Bob Slurm
+data:
+  # num_workers: ${oc.decode:${oc.env:SLURM_CPUS_PER_TASK,0}}
+  num_workers: 16
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+paths:
+  # root_dir: /group/project103/cslparis/ar
+  pretrained: ./pretrained
+
+trainer:
+  accelerator: gpu
+  # devices: ${oc.decode:${oc.env:SLURM_NTASKS_PER_NODE,1}}
+  # plugins:
+  #   _target_: src.utils.mpi.MPISlurmEnvironment
+  precision: bf16-mixed
+  strategy: ddp_find_unused_parameters_true  # TODO: ddp should be fine and faster
+  devices: auto
+  num_nodes: 1
+  sync_batchnorm: True

@@ -1,0 +1,29 @@
+# CKNNACallback configuration
+# Computes Centered Kernel Nearest-Neighbor Alignment between
+# SAE activations and input embeddings.
+
+cknna:
+  _target_: steerable_retrieval.callbacks.alignment.CKNNACallback
+
+  # Enable on validation/test
+  enable_on_validation: true
+  enable_on_test: true
+
+  # Frequency control
+  every_n_steps: null
+  every_n_epochs: 1
+
+  # Number of nearest neighbors for CKNNA
+  topk: 10
+
+  # Max samples to use (subsamples if larger, for memory/speed)
+  max_samples: 2048
+
+  # If true, use binary neighbor overlap only (ignore kernel values)
+  distance_agnostic: false
+
+  # Use unbiased HSIC estimator
+  unbiased: true
+
+  # Logging prefix
+  prefix: CKNNA

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steerable-retrieval"
+version = "0.1.0"
+description = "Sparse steerable music retrieval: open-vocabulary concept control for dense embeddings via sparse inversion in a trained SAE."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Julien Guinot", email = "j.guinot@qmul.ac.uk" },
+    { name = "Alain Riou" },
+    { name = "Elio Quinton" },
+    { name = "György Fazekas" },
+]
+keywords = ["music-information-retrieval", "sparse-autoencoders", "steerable-retrieval", "interpretability"]
+
+# Core runtime deps for the steering API (Slider). Training/eval have heavier
+# requirements listed in requirements.txt.
+dependencies = [
+    "torch>=2.0",
+    "numpy",
+]
+
+[project.optional-dependencies]
+# Inference with the released MuQ-MuLan model (concept text encoding).
+muq = ["muq"]
+# Full training / evaluation stack (Hydra + Lightning + Dora + encoders).
+train = [
+    "lightning",
+    "hydra-core",
+    "dora_search",
+    "wandb",
+    "einops",
+]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://pliploop.github.io/sparse-steer-retrieval/"
+Repository = "https://github.com/Pliploop/sparse-steer-retrieval"
+Demo = "https://huggingface.co/spaces/Pliploop/steerable-retrieval"
+
+[tool.setuptools.packages.find]
+include = ["steerable_retrieval*"]
+
+[tool.setuptools.package-data]
+# Ship the default Mahalanobis manifold prior (a library constant) in the wheel.
+"steerable_retrieval.assets" = ["*.npz"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

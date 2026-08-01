@@ -1,0 +1,12 @@
+name: extract
+output_filename: concept_activations.pt
+
+extractor:
+  target: steerable_retrieval.experiments.concepts.extract._cosine_probe_vector_and_stats
+  params:
+    
+
+# bridge:
+#   checkpoint_path: null
+#   checkpoint_key: bridges
+

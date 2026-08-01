@@ -1,0 +1,36 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - /model: default
+  - /paths: default
+  - /hydra: default
+  - /dora: default
+  - optional /local: default
+  - /debug: null
+
+task_name: "stability_processing"
+seed: 42
+device: cuda:0
+run_name: "stability_processing"
+
+output_dir: ${paths.output_dir}
+
+model_source:
+  config_source: null      # W&B run id OR .yaml path (local or s3://...) used to fetch cfg.model
+  checkpoint_source: null  # Local/S3 checkpoint path to load directly
+
+model_post_overrides: {}
+
+stability:
+  checkpoint_paths: []
+  topk_by_energy: 512
+  n_curve_points: 50
+
+wandb:
+  enabled: true
+  project: SpaMR
+  entity: jul-guinot
+  group: offline_stability
+  tags: []
+

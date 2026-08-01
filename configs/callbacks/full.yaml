@@ -1,0 +1,16 @@
+defaults:
+  - model_summary
+  - _self_
+  - monitor
+  - model_checkpoint
+  - progress_bar
+  - energy
+  - modality
+  # - bridge
+  - modality_classifier
+  # - similarity
+  # - save_activations
+  - cknna
+  
+model_summary:
+  max_depth: 1

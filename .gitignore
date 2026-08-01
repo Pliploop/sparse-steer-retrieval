@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments and local secrets
+.env
+.venv/
+env/
+venv/
+.secrets
+
+# Build outputs
+build/
+dist/
+htmlcov/
+.coverage*
+
+# Data, checkpoints, and experiment outputs
+data/
+logs/
+results/
+wandb/
+*.ckpt
+*.pt
+*.pth
+*.pkl
+*.npy
+
+# Demo artifacts generated locally or during HF upload
+demo/corpus/
+demo/hf/_staged/
+
+# Website dependencies/builds
+website/node_modules/
+website/dist/
+website/dist-ssr/
+
+# OS/editor noise
+.DS_Store
+.ipynb_checkpoints/
