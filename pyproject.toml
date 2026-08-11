@@ -41,6 +41,7 @@ test = ["pytest"]
 Homepage = "https://pliploop.github.io/sparse-steer-retrieval/"
 Repository = "https://github.com/Pliploop/sparse-steer-retrieval"
 Demo = "https://huggingface.co/spaces/Pliploop/steerable-retrieval"
+Paper = "https://arxiv.org/abs/2608.08757"
 
 [tool.setuptools.packages.find]
 include = ["steerable_retrieval*"]

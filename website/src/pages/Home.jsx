@@ -95,6 +95,7 @@ export default function Home() {
             <Affiliations />
 
             <div className="mt-8 flex flex-wrap gap-2.5">
+              <LinkPill href={LINKS.paper} soon="Paper">Paper</LinkPill>
               <LinkPill href={LINKS.conference} soon="Conference">ISMIR 2026</LinkPill>
               <LinkPill href={LINKS.huggingface} soon="Model">Model</LinkPill>
               <LinkPill href={LINKS.demo} soon="Live demo">Demo</LinkPill>

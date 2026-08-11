@@ -11,6 +11,7 @@
 Accepted to **ISMIR 2026**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![arXiv](https://img.shields.io/badge/arXiv-2608.08757-b31b1b.svg)](https://arxiv.org/pdf/2608.08757)
 [![ISMIR 2026](https://img.shields.io/badge/ISMIR-2026-b31b1b.svg)](https://ismir2026.ismir.net/)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Model-steerable--retrieval--sae-FFD21E.svg)](https://huggingface.co/Pliploop/steerable-retrieval-sae)
 [![Companion Website](https://img.shields.io/badge/Companion%20Website-live-4c9a2a.svg)](https://pliploop.github.io/sparse-steer-retrieval/)
@@ -168,7 +169,7 @@ amplification and suppression.
 - **Retrieval editing** — at matched off-target drift / modality adherence, inversion achieves
   larger target-concept gains; both variants stay markedly closer to the audio manifold.
 
-See the [citation](#citation) for the current publication record; arXiv / DOI details will be added when public.
+See the [citation](#citation) for the current publication record and arXiv preprint.
 
 ---
 
@@ -237,10 +238,13 @@ retrieval) on a small synthetic SAE.
   title     = {Steering dense music retrieval with open-vocabulary concept discovery},
   author    = {Guinot, Julien and Riou, Alain and Quinton, Elio and Fazekas, Gy{\"o}rgy},
   booktitle = {Proceedings of the 27th International Society for Music Information Retrieval Conference (ISMIR)},
-  year      = {2026}
+  year      = {2026},
+  eprint    = {2608.08757},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SD},
+  url       = {https://arxiv.org/abs/2608.08757}
 }
 ```
-<!-- TODO: update with final pages / DOI once published -->
 
 ---
 

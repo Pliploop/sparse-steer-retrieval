@@ -17,6 +17,7 @@ export const STEER = '#7B3FF2' // brand / concept accent
 // `null` renders as a disabled "soon" pill rather than a dead link. Never use
 // '#' as a placeholder href.
 export const LINKS = {
+  paper: 'https://arxiv.org/pdf/2608.08757',
   conference: 'https://ismir2026.ismir.net/',
   huggingface: 'https://huggingface.co/Pliploop/steerable-retrieval-sae',
   demo: 'https://huggingface.co/spaces/Pliploop/steerable-retrieval',
