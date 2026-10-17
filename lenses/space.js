@@ -3,6 +3,9 @@ export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
 const BACKGROUND_OPACITY=.72;
+const rgb=palette.map(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)));
+const mix=(a,b,t)=>a+(b-a)*t;
+const opacity=kind=>kind==='result'?1:kind==='base'?.88:BACKGROUND_OPACITY;
 const STAR='M0-9 2.65-3.1 9.5-2.9 4.1 1.45 5.7 8 0 4.35-5.7 8-4.1 1.45-9.5-2.9-2.65-3.1Z';
 // Camera coordinates are applied before drawing, never as a CSS bitmap scale.
 // Only the seed and retrieval results have DOM hit targets; the cloud is canvas.
@@ -10,15 +13,29 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   const stage=$('#map-stage'),world=$('#space-world'),canvas=node('canvas','map-canvas');
   canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. Bright dots are the ten nearest neighbours in the selected similarity space. Hover a dot to preview; drag to pan; scroll to zoom.');
   world.replaceChildren(canvas);const ctx=canvas.getContext('2d');
+  const densityLayers=new Map();let densityStart=0;
   const points=new Map(),cards=new Map(),trackIndex=new Map(),metadataCache=new Map(),densityCache=new Map();
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
-  let frame=0,start=0,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,fields=[],showDensity=false,grid=new Map();
+  let frame=0,start=0,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
   const densityWorker=new Worker(new URL('./density-worker.js?v=canvas2',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
-    const surfaces=data.fields.map(f=>({...f,surface:densitySurface(f,palette[f.id%palette.length],24)}));
+    // Composite the six soft fields once at their native grid resolution.
+    // Camera frames then scale one texture per view, including during a blend.
+    const first=data.fields[0];if(!first)return;
+    const surface=node('canvas');surface.width=first.width;surface.height=first.height;
+    const densityContext=surface.getContext('2d');
+    for(const field of data.fields)densityContext.drawImage(densitySurface(field,palette[field.id%palette.length],24),0,0);
+    const surfaces=[{bounds:first.bounds,surface}];
     densityCache.set(data.key,surfaces);if(densityCache.size>12)densityCache.delete(densityCache.keys().next().value);
-    if(result&&data.key===densityKey()){fields=surfaces;schedule();}
+    if(result&&data.key===densityKey())setDensity(data.key,surfaces);
   };
+  function setDensity(key,fields){
+    if(densityLayers.get(key)?.target===1)return;
+    const now=performance.now(),t=clamp((now-densityStart)/1000,0,1);
+    for(const layer of densityLayers.values()){layer.opacity=mix(layer.from,layer.target,t);layer.from=layer.opacity;layer.target=0;}
+    let layer=densityLayers.get(key);if(!layer){layer={fields,opacity:0,from:0,target:1};densityLayers.set(key,layer);}else layer.target=1;
+    densityStart=now;schedule();
+  }
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
@@ -36,27 +53,38 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     const t=duration?clamp((now-start)/duration,0,1):1,eased=t*t*(3-2*t),radius=clamp((width<700?2.2:2.8)*Math.sqrt(zoom),1.8,6.8);
     stage.classList.toggle('transitioning',t<1);world.dataset.zoom=zoom.toFixed(3);
     canvas.dataset.pointCount=points.size;canvas.dataset.neighbours=JSON.stringify(result.results.map(t=>t.id));
-    // Density is deliberately soft; circles are always rasterized afresh at native DPR.
-    if(showDensity){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';for(const f of fields){const a=screen({x:f.bounds.left,y:f.bounds.top}),b=screen({x:f.bounds.right,y:f.bounds.bottom});ctx.globalAlpha=activeGroup!==null&&f.id!==activeGroup ? .15 : 1;ctx.drawImage(f.surface,a.x,a.y,b.x-a.x,b.y-a.y);}ctx.globalAlpha=1;}
-    const batches=Array.from({length:18},()=>[]);grid=new Map();
+    canvas.dataset.transitionProgress=t.toFixed(5);
+    // Keep old density fields until the next ones are ready; only these soft
+    // backgrounds blend. The songs themselves travel along continuous paths.
+    const densityT=clamp((now-densityStart)/1000,0,1);
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='low';
+    for(const[key,layer]of densityLayers){
+      layer.opacity=mix(layer.from,layer.target,densityT);
+      if(densityT===1&&layer.target===0){densityLayers.delete(key);continue;}
+      if(showDensity&&layer.opacity>0)for(const f of layer.fields){const a=screen({x:f.bounds.left,y:f.bounds.top}),b=screen({x:f.bounds.right,y:f.bounds.bottom});ctx.globalAlpha=layer.opacity;ctx.drawImage(f.surface,a.x,a.y,b.x-a.x,b.y-a.y);}
+    }
+    const batches=new Map();grid=new Map();
     for(const p of points.values()){
-      p.current={x:p.from.x+(p.x-p.from.x)*eased,y:p.from.y+(p.y-p.from.y)*eased};
+      const color=rgb[p.cluster%6],a=p.from;
+      p.current={x:mix(a.x,p.x,eased),y:mix(a.y,p.y,eased),r:mix(a.r,color[0],eased),g:mix(a.g,color[1],eased),b:mix(a.b,color[2],eased)};
       const pos=screen(p.current);p.screen=pos;
       if(pos.x< -15||pos.y< -15||pos.x>width+15||pos.y>height+15)continue;
       const cell=Math.floor(pos.x/32)+','+Math.floor(pos.y/32);if(!grid.has(cell))grid.set(cell,[]);grid.get(cell).push(p);
       if(p.kind==='seed')continue;
-      const layer=p.kind==='result'?2:p.kind==='base'?1:0;
-      batches[layer*6+p.cluster%6].push(p);
+      const layer=p.kind==='result'?2:p.kind==='base'?1:0,c=p.current;
+      const packed=(Math.round(c.r)<<16)|(Math.round(c.g)<<8)|Math.round(c.b),key=layer*0x1000000+packed;
+      let batch=batches.get(key);if(!batch){batch={layer,color:'#'+packed.toString(16).padStart(6,'0'),points:[]};batches.set(key,batch);}batch.points.push(p);
     }
-    // All dots share one radius; opacity alone identifies exact retrieval results.
-    for(let b=0;b<batches.length;b++){
-      const group=b%6,layer=Math.floor(b/6);ctx.fillStyle=palette[group];ctx.globalAlpha=(layer===2?1:layer===1?.88:BACKGROUND_OPACITY)*(activeGroup!==null&&activeGroup!==group?.13:1);
-      ctx.beginPath();for(const p of batches[b]){ctx.moveTo(p.screen.x+radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,radius,0,Math.PI*2);}ctx.fill();
+    // Batch matching colours instead of creating a DOM element per song. Colour
+    // interpolation survives interrupted changes just like position does.
+    for(const batch of [...batches.values()].sort((a,b)=>a.layer-b.layer)){
+      ctx.fillStyle=batch.color;ctx.globalAlpha=opacity(batch.layer===2?'result':batch.layer===1?'base':'background');
+      ctx.beginPath();for(const p of batch.points){ctx.moveTo(p.screen.x+radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,radius,0,Math.PI*2);}ctx.fill();
     }
     ctx.globalAlpha=1;
     for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;}
     if(openId)placeCard(cards.get(openId));
-    if(t<1)schedule();
+    if(t<1||(showDensity&&densityT<1))schedule();
   }
   function focus(id,on){focusedId=on?id:null;/* Hover never promotes a non-neighbour to full opacity. */}
   function closeCard(immediate=false){
@@ -116,15 +144,21 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     return best;
   }
   function render(r,options={}){
+    const remaining=Math.max(0,duration-(performance.now()-start));
+    const viewChanged=!result||result.signature!==r.signature||result.method!==r.method;
     closeCard(true);metadataEpoch++;result=r;compare=!!options.compare;activeGroup=null;trackIndex.clear();
     for(const t of[r.seed,...r.results,...r.baseline,...(r.representatives||[])])trackIndex.set(t.id,t);
     const bright=new Set(r.results.map(t=>t.id)),base=new Set(compare?r.baseline.map(t=>t.id):[]),old=new Map(points);points.clear();
-    for(const p of r.plot){const previous=old.get(p.id);points.set(p.id,{...p,kind:p.id===r.seed.id?'seed':bright.has(p.id)?'result':base.has(p.id)?'base':'background',from:previous?.current||{x:p.x,y:p.y},current:previous?.current||{x:p.x,y:p.y}});}
+    for(const p of r.plot){
+      const previous=old.get(p.id),color=rgb[p.cluster%6];
+      const from=previous?.current?{...previous.current}:{x:p.x,y:p.y,r:color[0],g:color[1],b:color[2]};
+      points.set(p.id,{...p,kind:p.id===r.seed.id?'seed':bright.has(p.id)?'result':base.has(p.id)?'base':'background',from,current:{...from}});
+    }
     for(const c of cards.values())c.remove();cards.clear();
     for(const t of[r.seed,...r.results,...(compare?r.baseline:[])]){if(cards.has(t.id))continue;const p=points.get(t.id);if(p)ensureCard(t,p.kind,p);}
-    const key=densityKey();fields=densityCache.get(key)||[];
-    if(!densityCache.has(key))densityWorker.postMessage({key,points:r.plot,groups:r.clusters||[]});
-    start=performance.now();duration=old.size&&!matchMedia('(prefers-reduced-motion: reduce)').matches?1150:0;
+    const key=densityKey();if(densityCache.has(key))setDensity(key,densityCache.get(key));
+    else densityWorker.postMessage({key,points:r.plot,groups:r.clusters||[]});
+    start=performance.now();duration=old.size&&!matchMedia('(prefers-reduced-motion: reduce)').matches?(viewChanged?1650:remaining):0;
     $('#map-empty').hidden=true;$('#map-title').textContent=r.method==='base'?'Full embedding space':`${r.category.name} space`;
     $('#map-explanation').textContent='Bright dots: 10 nearest neighbours · hover to preview · drag / scroll to explore';
     $('#cluster-legend').replaceChildren();resize();
@@ -142,5 +176,5 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   $('#groups-toggle').onclick=()=>{showDensity=!showDensity;$('#groups-toggle').setAttribute('aria-pressed',String(showDensity));schedule();};
   function watchResolution(){const query=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);query.addEventListener('change',()=>{resize();watchResolution();},{once:true});}
   watchResolution();new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);document.addEventListener('themechange',schedule);
-  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
+  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
 }

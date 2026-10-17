@@ -1,16 +1,18 @@
-import {createSpace} from './space.js?v=cloud5';
+import {stylizeControls} from './selectors.js?v=motion1';
+import {createSpace} from './space.js?v=motion1';
 import {createSpotifyPlayer} from './spotify.js?v=canvas2';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0};
 const trackIndices=new Map(),views=new Map(),captions=new Map(),affinities=new Map(),pending=new Map();
 let sequence=0,searchTimer;
+const syncSelectors=stylizeControls();
 const worker=new Worker(new URL('./search-worker.js?v=canvas2',import.meta.url),{type:'module'});
 worker.onmessage=({data})=>{const item=pending.get(data.id);if(!item)return;pending.delete(data.id);data.error?item.reject(Error(data.error)):item.resolve(data.result);};
 worker.onerror=()=>{for(const item of pending.values())item.reject(Error('Search could not start. Please reload the page.'));pending.clear();};
 function rpc(type,value={}){return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});worker.postMessage({id,type,...value});});}
 function el(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
 function error(message=''){$('#alert').textContent=message;$('#alert').hidden=!message;}
-function busy(value,label='Loading this lens…'){state.busy=value;$('#map-stage').setAttribute('aria-busy',String(value));$('#busy').hidden=!value;$('#busy-text').textContent=label;}
+function busy(value,label='Loading this lens…'){syncSelectors();state.busy=value;$('#map-stage').setAttribute('aria-busy',String(value));$('#busy').hidden=!value;$('#busy-text').textContent=label;}
 function url(path){return new URL(path+'?v='+(path.startsWith('maps/')||path.startsWith('views/')?state.manifest.map_version||state.manifest.version:state.manifest.dataset_version||state.manifest.version),base);}
 async function resource(path,Type){const r=await fetch(url(path));if(!r.ok)throw Error('This part of the collection could not load. Please try again.');return Type?new Type(await r.arrayBuffer()):r.json();}
 function cached(cache,key,load,limit=24){if(cache.has(key)){const value=cache.get(key);cache.delete(key);cache.set(key,value);return value;}const value=load().catch(e=>{cache.delete(key);throw e;});cache.set(key,value);while(cache.size>limit)cache.delete(cache.keys().next().value);return value;}
@@ -57,7 +59,7 @@ $('#shuffle').onclick=()=>choose(Math.floor(Math.random()*state.manifest.count))
 $('#search').oninput=e=>{clearTimeout(searchTimer);const q=e.target.value;searchTimer=setTimeout(async()=>{try{const hits=await rpc('search',{query:q});if($('#search').value!==q)return;$('#search-results').replaceChildren(...hits.map(index=>{const track=basic(index),b=el('button','search-hit'),text=el('span');text.append(el('strong','',track.title),el('small','',track.artist));b.append(text);b.onclick=()=>choose(index);return b;}));$('#search-results').hidden=!hits.length;$('#search').setAttribute('aria-expanded',String(!!hits.length));}catch(e){error(e.message);}},150);};
 $('#inspect-prompts').onclick=()=>{const c=category();$('#prompts-title').textContent=c.name;$('#prompts-list').replaceChildren(...c.members.map((m,i)=>{const row=el('div','prompt-row');row.append(el('span','',String(i+1).padStart(2,'0')),el('div','prompt-description',c.prompt_overrides?.[m]||c.template.replace('{member}',m)));if(c.controls?.includes(m))row.append(el('small','control-member','Control'));return row;}));$('#prompts-dialog').showModal();};
 $('#close-prompts').onclick=()=>$('#prompts-dialog').close();
-window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,dialog'))return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const list=state.manifest.categories,index=list.findIndex(c=>c.id===state.category),next=list[(index+(e.key==='ArrowRight'?1:list.length-1))%list.length];state.category=next.id;state.full=false;$('#lens-select').value=next.id;run();}});
+window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea,dialog,[role=combobox]'))return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const list=state.manifest.categories,index=list.findIndex(c=>c.id===state.category),next=list[(index+(e.key==='ArrowRight'?1:list.length-1))%list.length];state.category=next.id;state.full=false;$('#lens-select').value=next.id;run();}});
 async function init(){
   try{
     const r=await fetch(new URL('manifest.json',base),{cache:'no-cache'});if(!r.ok)throw Error('The music collection could not load.');state.manifest=await r.json();
