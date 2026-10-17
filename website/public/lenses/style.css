@@ -75,3 +75,13 @@ html,body.canvas-page{width:100%;height:100%;margin:0;overflow:hidden}.canvas-pa
 
 /* Neighbour hit areas stay discreet; visible dots all live in the SVG map. */
 .spatial-marker:hover{background:transparent}
+
+/* Draw the map directly at native device resolution, including while at rest. */
+#space-world{transform:none!important;will-change:auto!important;transition:none!important;contain:layout style}
+#map-canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+#map-cards .map-card:not(.expanded) .spatial-content{visibility:hidden;pointer-events:none}
+#map-cards .map-card.expanded .spatial-content{visibility:visible;pointer-events:auto}
+.map-card .spatial-content{padding:12px;border-radius:6px;box-shadow:0 3px 18px #0f172a08}
+.map-card .spatial-top{margin-bottom:9px}.map-card .spatial-title{font-size:11px}.map-card .spatial-artist{font-size:9px}
+
+.blind #map-cards{visibility:hidden}

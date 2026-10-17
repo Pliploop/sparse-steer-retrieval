@@ -14,9 +14,11 @@ export function estimateDensities(points,groups,{width=96,height=76,sigma=3.1}={
     return{id:group.id,width,height,bounds,values:smooth,maximum,mode:{x:bounds.left+(peak%width)/(width-1)*(bounds.right-bounds.left),y:bounds.top-Math.floor(peak/width)/(height-1)*(bounds.top-bounds.bottom)}};
   });
 }
-export function densityImage(field,color){
+export function densitySurface(field,color,opacity=49){
   const canvas=document.createElement('canvas');canvas.width=field.width;canvas.height=field.height;const ctx=canvas.getContext('2d'),image=ctx.createImageData(field.width,field.height);
   const rgb=[1,3,5].map(start=>parseInt(color.slice(start,start+2),16));
-  for(let i=0;i<field.values.length;i++){const density=field.maximum?field.values[i]/field.maximum:0;image.data[i*4]=rgb[0];image.data[i*4+1]=rgb[1];image.data[i*4+2]=rgb[2];image.data[i*4+3]=density<.008?0:Math.round(density**.75*49);}
-  ctx.putImageData(image,0,0);return canvas.toDataURL('image/png');
+  for(let i=0;i<field.values.length;i++){const density=field.maximum?field.values[i]/field.maximum:0;image.data[i*4]=rgb[0];image.data[i*4+1]=rgb[1];image.data[i*4+2]=rgb[2];image.data[i*4+3]=density<.008?0:Math.round(density**.75*opacity);}
+  ctx.putImageData(image,0,0);return canvas;
 }
+
+export function densityImage(field,color){return densitySurface(field,color).toDataURL('image/png');}
