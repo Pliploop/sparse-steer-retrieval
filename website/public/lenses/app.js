@@ -1,4 +1,4 @@
-import {createSpace} from './space.js?v=canvas2';
+import {createSpace} from './space.js?v=cloud3';
 import {createSpotifyPlayer} from './spotify.js?v=canvas2';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0};
