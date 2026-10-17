@@ -1,7 +1,7 @@
 // No server and no audio/model code: exact cosine over a lazy float32 lens matrix.
 let manifest,catalog,artists,searchText,base;
 const matrices=new Map();
-const dataURL=path=>new URL('data/'+path+'?v='+manifest.version,import.meta.url);
+const dataURL=path=>new URL('data/'+path+'?v='+(manifest.dataset_version||manifest.version),import.meta.url);
 async function binary(path,Type){const r=await fetch(dataURL(path));if(!r.ok)throw Error('Could not load this lens. Please try again.');return new Type(await r.arrayBuffer());}
 async function matrix(view){
   if(matrices.has(view.key)){const value=matrices.get(view.key);matrices.delete(view.key);matrices.set(view.key,value);return value;}
