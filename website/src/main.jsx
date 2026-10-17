@@ -4,8 +4,8 @@ import Home from './pages/Home.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 
-// Single-page site: the live steerable-retrieval demo is a separate Hugging Face
-// Space (linked out), not a bundled route, so no router is needed here.
+// The project page uses React. Music Lenses is a standalone static page in
+// public/lenses/; the live Hugging Face demo remains linked out. No router needed.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary label="Site">

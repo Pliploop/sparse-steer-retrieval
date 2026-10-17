@@ -79,6 +79,13 @@ export default function Nav({ dark, setDark, sections = [], active }) {
           ))}
         </nav>
 
+        <a
+          href={`${import.meta.env.BASE_URL}lenses/`}
+          className="text-xs font-medium text-neutral-600 transition-colors hover:text-steer dark:text-neutral-300 sm:text-sm"
+        >
+          Music Lenses ↗
+        </a>
+
         <button
           type="button"
           onClick={() => setDark(!dark)}

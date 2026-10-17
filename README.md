@@ -256,3 +256,7 @@ MIT — see [LICENSE](LICENSE).
 
 We thank the authors of [MuQ-MuLan](https://github.com/tencent-ailab/MuQ) and
 [CLAP](https://github.com/LAION-AI/CLAP) for their pretrained audio–text encoders.
+
+### Music Lenses page
+
+The project website also includes [Music Lenses](https://pliploop.github.io/sparse-steer-retrieval/lenses/): a full-screen neighbour map with six fixed musical lenses, text and Adam sparse-inversion bases, browser-side search over all 109,269 Music4All tracks, and on-demand Spotify playback. Its static data package is included in `website/public/lenses/`; no backend or local audio is required. See [the page’s export and data-format notes](website/public/lenses/README.md). Custom axes remain in the separate local research app.

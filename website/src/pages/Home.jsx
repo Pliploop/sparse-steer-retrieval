@@ -100,6 +100,7 @@ export default function Home() {
               <LinkPill href={LINKS.huggingface} soon="Model">Model</LinkPill>
               <LinkPill href={LINKS.demo} soon="Live demo">Demo</LinkPill>
               <a href={LINKS.github} target="_blank" rel="noreferrer" className="pill">Code</a>
+              <a href={asset('lenses/')} className="pill">Music Lenses ↗</a>
               <a
                 href="#examples"
                 onClick={(e) => scrollToSection(e, 'examples')}
