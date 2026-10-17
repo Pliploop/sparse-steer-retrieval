@@ -1,8 +1,8 @@
 import {densitySurface} from './density.js?v=canvas2';
-export const palette=['#6366f1','#f43f5e','#06b6d4','#f59e0b','#10b981','#a855f7'];
+export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
-const BACKGROUND_OPACITY=.34;
+const BACKGROUND_OPACITY=.72;
 const STAR='M0-9 2.65-3.1 9.5-2.9 4.1 1.45 5.7 8 0 4.35-5.7 8-4.1 1.45-9.5-2.9-2.65-3.1Z';
 // Camera coordinates are applied before drawing, never as a CSS bitmap scale.
 // Only the seed and retrieval results have DOM hit targets; the cloud is canvas.
@@ -20,7 +20,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     if(result&&data.key===densityKey()){fields=surfaces;schedule();}
   };
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
-  function anchor(p){return{x:width*(.5+p.x*.265),y:height*(.5-p.y*.29)};}
+  function anchor(p){return{x:width*(.5+p.x*.38),y:height*(.47-p.y*.36)};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
   function schedule(){if(!frame)frame=requestAnimationFrame(paint);}
   function fit(){zoom=1;pan={x:0,y:0};schedule();}
@@ -33,7 +33,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     frame=0;if(pixelRatio!==(window.devicePixelRatio||1))resize();if(!width||!height)return;
     ctx.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);ctx.clearRect(0,0,width,height);
     if(!result)return;
-    const t=duration?clamp((now-start)/duration,0,1):1,eased=t*t*(3-2*t),radius=clamp(1.8*Math.sqrt(zoom),1.35,4.4);
+    const t=duration?clamp((now-start)/duration,0,1):1,eased=t*t*(3-2*t),radius=clamp((width<700?2.2:2.8)*Math.sqrt(zoom),1.8,6.8);
     stage.classList.toggle('transitioning',t<1);world.dataset.zoom=zoom.toFixed(3);
     canvas.dataset.pointCount=points.size;canvas.dataset.neighbours=JSON.stringify(result.results.map(t=>t.id));
     // Density is deliberately soft; circles are always rasterized afresh at native DPR.
@@ -50,7 +50,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     }
     // All dots share one radius; opacity alone identifies exact retrieval results.
     for(let b=0;b<batches.length;b++){
-      const group=b%6,layer=Math.floor(b/6);ctx.fillStyle=palette[group];ctx.globalAlpha=(layer===2?1:layer===1?.45:BACKGROUND_OPACITY)*(activeGroup!==null&&activeGroup!==group?.13:1);
+      const group=b%6,layer=Math.floor(b/6);ctx.fillStyle=palette[group];ctx.globalAlpha=(layer===2?1:layer===1?.88:BACKGROUND_OPACITY)*(activeGroup!==null&&activeGroup!==group?.13:1);
       ctx.beginPath();for(const p of batches[b]){ctx.moveTo(p.screen.x+radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,radius,0,Math.PI*2);}ctx.fill();
     }
     ctx.globalAlpha=1;
