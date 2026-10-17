@@ -13,10 +13,11 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   const stage=$('#map-stage'),world=$('#space-world'),canvas=node('canvas','map-canvas');
   canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. Bright dots are the ten nearest neighbours in the selected similarity space. Hover a dot to preview; drag to pan; scroll to zoom.');
   world.replaceChildren(canvas);const ctx=canvas.getContext('2d');
-  const densityLayers=new Map();let densityStart=0;
+  const densityLayers=new Map();let densityElapsed=1000;
+  let motionEnabled=localStorage.getItem('music-lenses-map-motion')!=='off';
   const points=new Map(),cards=new Map(),trackIndex=new Map(),metadataCache=new Map(),densityCache=new Map();
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
-  let frame=0,start=0,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
+  let frame=0,elapsed=0,lastFrame=null,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
   const densityWorker=new Worker(new URL('./density-worker.js?v=canvas2',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
     // Composite the six soft fields once at their native grid resolution.
@@ -31,10 +32,9 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   };
   function setDensity(key,fields){
     if(densityLayers.get(key)?.target===1)return;
-    const now=performance.now(),t=clamp((now-densityStart)/1000,0,1);
-    for(const layer of densityLayers.values()){layer.opacity=mix(layer.from,layer.target,t);layer.from=layer.opacity;layer.target=0;}
+    for(const layer of densityLayers.values()){layer.from=layer.opacity;layer.target=0;}
     let layer=densityLayers.get(key);if(!layer){layer={fields,opacity:0,from:0,target:1};densityLayers.set(key,layer);}else layer.target=1;
-    densityStart=now;schedule();
+    densityElapsed=motionEnabled?0:1000;schedule();
   }
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
@@ -47,16 +47,21 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     schedule();
   }
   function paint(now){
-    frame=0;if(pixelRatio!==(window.devicePixelRatio||1))resize();if(!width||!height)return;
+    frame=0;
+    // Advance by displayed frames, with a capped delta. A slow first frame or
+    // a stalled main thread must never consume the entire transition unseen.
+    const delta=lastFrame===null?0:clamp(now-lastFrame,0,50);lastFrame=now;
+    elapsed=Math.min(duration,elapsed+delta);densityElapsed=Math.min(1000,densityElapsed+delta);
+    if(pixelRatio!==(window.devicePixelRatio||1))resize();if(!width||!height)return;
     ctx.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);ctx.clearRect(0,0,width,height);
     if(!result)return;
-    const t=duration?clamp((now-start)/duration,0,1):1,eased=t*t*(3-2*t),radius=clamp((width<700?2.2:2.8)*Math.sqrt(zoom),1.8,6.8);
+    const t=duration?clamp(elapsed/duration,0,1):1,eased=t*t*(3-2*t),radius=clamp((width<700?2.2:2.8)*Math.sqrt(zoom),1.8,6.8);
     stage.classList.toggle('transitioning',t<1);world.dataset.zoom=zoom.toFixed(3);
     canvas.dataset.pointCount=points.size;canvas.dataset.neighbours=JSON.stringify(result.results.map(t=>t.id));
     canvas.dataset.transitionProgress=t.toFixed(5);
     // Keep old density fields until the next ones are ready; only these soft
     // backgrounds blend. The songs themselves travel along continuous paths.
-    const densityT=clamp((now-densityStart)/1000,0,1);
+    const densityT=clamp(densityElapsed/1000,0,1);
     ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='low';
     for(const[key,layer]of densityLayers){
       layer.opacity=mix(layer.from,layer.target,densityT);
@@ -144,7 +149,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     return best;
   }
   function render(r,options={}){
-    const remaining=Math.max(0,duration-(performance.now()-start));
+    const remaining=Math.max(0,duration-elapsed);
     const viewChanged=!result||result.signature!==r.signature||result.method!==r.method;
     closeCard(true);metadataEpoch++;result=r;compare=!!options.compare;activeGroup=null;trackIndex.clear();
     for(const t of[r.seed,...r.results,...r.baseline,...(r.representatives||[])])trackIndex.set(t.id,t);
@@ -158,7 +163,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     for(const t of[r.seed,...r.results,...(compare?r.baseline:[])]){if(cards.has(t.id))continue;const p=points.get(t.id);if(p)ensureCard(t,p.kind,p);}
     const key=densityKey();if(densityCache.has(key))setDensity(key,densityCache.get(key));
     else densityWorker.postMessage({key,points:r.plot,groups:r.clusters||[]});
-    start=performance.now();duration=old.size&&!matchMedia('(prefers-reduced-motion: reduce)').matches?(viewChanged?1650:remaining):0;
+    elapsed=0;lastFrame=null;duration=old.size&&motionEnabled?(viewChanged?1650:remaining):0;
     $('#map-empty').hidden=true;$('#map-title').textContent=r.method==='base'?'Full embedding space':`${r.category.name} space`;
     $('#map-explanation').textContent='Bright dots: 10 nearest neighbours · hover to preview · drag / scroll to explore';
     $('#cluster-legend').replaceChildren();resize();
@@ -174,6 +179,16 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   stage.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCard(true);document.activeElement?.blur();}});
   $('#reset-map').onclick=()=>{closeCard(true);fit();};$('#zoom-in').onclick=()=>{closeCard(true);zoom=clamp(zoom*1.2,.55,6);schedule();};$('#zoom-out').onclick=()=>{closeCard(true);zoom=clamp(zoom/1.2,.55,6);schedule();};
   $('#groups-toggle').onclick=()=>{showDensity=!showDensity;$('#groups-toggle').setAttribute('aria-pressed',String(showDensity));schedule();};
+  const motionToggle=$('#motion-toggle');
+  function updateMotionControl(){
+    canvas.dataset.motion=motionEnabled?'on':'off';
+    if(motionToggle){motionToggle.setAttribute('aria-checked',String(motionEnabled));motionToggle.querySelector('.motion-state').textContent=motionEnabled?'On':'Off';}
+  }
+  if(motionToggle)motionToggle.onclick=()=>{
+    motionEnabled=!motionEnabled;localStorage.setItem('music-lenses-map-motion',motionEnabled?'on':'off');
+    if(!motionEnabled){elapsed=duration;densityElapsed=1000;}updateMotionControl();schedule();
+  };
+  updateMotionControl();
   function watchResolution(){const query=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);query.addEventListener('change',()=>{resize();watchResolution();},{once:true});}
   watchResolution();new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);document.addEventListener('themechange',schedule);
   return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
