@@ -20,7 +20,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     if(result&&data.key===densityKey()){fields=surfaces;schedule();}
   };
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
-  function anchor(p){return{x:width*(.5+p.x*.38),y:height*(.47-p.y*.36)};}
+  function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
   function schedule(){if(!frame)frame=requestAnimationFrame(paint);}
   function fit(){zoom=1;pan={x:0,y:0};schedule();}
