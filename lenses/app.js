@@ -1,5 +1,5 @@
 import {stylizeControls} from './selectors.js?v=motion1';
-import {createSpace} from './space.js?v=motion1';
+import {createSpace} from './space.js?v=motion2';
 import {createSpotifyPlayer} from './spotify.js?v=canvas2';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0};
