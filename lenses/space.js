@@ -2,7 +2,7 @@ import {densitySurface} from './density.js?v=canvas2';
 export const palette=['#6366f1','#f43f5e','#06b6d4','#f59e0b','#10b981','#a855f7'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
-const BACKGROUND_OPACITY=.14;
+const BACKGROUND_OPACITY=.34;
 const STAR='M0-9 2.65-3.1 9.5-2.9 4.1 1.45 5.7 8 0 4.35-5.7 8-4.1 1.45-9.5-2.9-2.65-3.1Z';
 // Camera coordinates are applied before drawing, never as a CSS bitmap scale.
 // Only the seed and retrieval results have DOM hit targets; the cloud is canvas.
