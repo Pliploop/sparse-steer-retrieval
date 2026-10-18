@@ -1,3 +1,4 @@
+import {createTrackLabels} from './labels.js?v=dock-speed1';
 import {densitySurface} from './density.js?v=canvas2';
 export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -36,6 +37,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     let layer=densityLayers.get(key);if(!layer){layer={fields,opacity:0,from:0,target:1};densityLayers.set(key,layer);}else layer.target=1;
     densityElapsed=motionEnabled?0:1000;schedule();
   }
+  const trackLabels=createTrackLabels({stage,points,openCard,closeCard,schedule});
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
@@ -88,18 +90,19 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     }
     ctx.globalAlpha=1;
     for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;}
+    trackLabels.update(now,{zoom,radius,width,height,transitioning:t<1});
     if(openId)placeCard(cards.get(openId));
     if(t<1||(showDensity&&densityT<1))schedule();
   }
   function focus(id,on){focusedId=on?id:null;/* Hover never promotes a non-neighbour to full opacity. */}
   function closeCard(immediate=false){
     clearTimeout(closeTimer);
-    const close=()=>{const c=cards.get(openId);if(!immediate&&c?.matches(':hover'))return;if(c){c.classList.remove('expanded');c.querySelector('.spatial-marker').setAttribute('aria-expanded','false');if(c.dataset.transient){c.remove();cards.delete(openId);}}openId=null;};
+    const close=()=>{const c=cards.get(openId);if(!immediate&&(c?.matches(':hover')||trackLabels.isHovered(openId)))return;if(c){c.classList.remove('expanded');c.querySelector('.spatial-marker').setAttribute('aria-expanded','false');if(c.dataset.transient){c.remove();cards.delete(openId);}}openId=null;};
     if(immediate)close();else closeTimer=setTimeout(close,180);
   }
   function placeCard(c){
     if(!c)return;const p=points.get(c.track.id)?.screen;if(!p)return;
-    const panel=c.querySelector('.spatial-content'),panelWidth=Math.min(220,width-30),reserve=width<700?150:105;
+    const panel=c.querySelector('.spatial-content'),panelWidth=Math.min(220,width-30),reserve=92;
     c.style.setProperty('--popup-width',panelWidth+'px');panel.style.maxHeight=Math.min(300,height-80-reserve)+'px';
     panel.style.left=clamp(19,15-p.x,width-15-p.x-panelWidth)+'px';
     panel.style.top=clamp(-25,90-p.y,height-reserve-p.y-(panel.offsetHeight||190))+'px';
@@ -170,14 +173,14 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   }
   canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p)openCard(p.id);else closeCard();});
   canvas.addEventListener('pointerleave',e=>{if(!e.relatedTarget?.closest('.map-card'))closeCard();});
-  stage.addEventListener('wheel',e=>{if(e.target.closest('.spatial-content'))return;e.preventDefault();closeCard(true);const rect=stage.getBoundingClientRect(),x=e.clientX-rect.left-width/2,y=e.clientY-rect.top-height/2,next=clamp(zoom*Math.exp(-e.deltaY*.0015),.55,6),ratio=next/zoom;pan={x:x-(x-pan.x)*ratio,y:y-(y-pan.y)*ratio};zoom=next;schedule();},{passive:false});
+  stage.addEventListener('wheel',e=>{if(e.target.closest('.spatial-content'))return;e.preventDefault();closeCard(true);const rect=stage.getBoundingClientRect(),x=e.clientX-rect.left-width/2,y=e.clientY-rect.top-height/2,next=clamp(zoom*Math.exp(-e.deltaY*.0015),.55,16),ratio=next/zoom;pan={x:x-(x-pan.x)*ratio,y:y-(y-pan.y)*ratio};zoom=next;schedule();},{passive:false});
   stage.addEventListener('pointerdown',e=>{if(e.target.closest('button,.spatial-content'))return;closeCard(true);drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false;canvas.style.cursor='grabbing';});
   window.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;if(moved){pan={x:drag.px+dx,y:drag.py+dy};schedule();}});
   window.addEventListener('pointerup',e=>{if(!drag)return;drag=null;canvas.style.cursor='grab';if(!moved){const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);if(p)openCard(p.id);}});
   window.addEventListener('pointercancel',()=>{drag=null;});
   document.addEventListener('pointerdown',e=>{if(!stage.contains(e.target))closeCard(true);});
   stage.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCard(true);document.activeElement?.blur();}});
-  $('#reset-map').onclick=()=>{closeCard(true);fit();};$('#zoom-in').onclick=()=>{closeCard(true);zoom=clamp(zoom*1.2,.55,6);schedule();};$('#zoom-out').onclick=()=>{closeCard(true);zoom=clamp(zoom/1.2,.55,6);schedule();};
+  $('#reset-map').onclick=()=>{closeCard(true);fit();};$('#zoom-in').onclick=()=>{closeCard(true);zoom=clamp(zoom*1.2,.55,16);schedule();};$('#zoom-out').onclick=()=>{closeCard(true);zoom=clamp(zoom/1.2,.55,16);schedule();};
   $('#groups-toggle').onclick=()=>{showDensity=!showDensity;$('#groups-toggle').setAttribute('aria-pressed',String(showDensity));schedule();};
   const motionToggle=$('#motion-toggle');
   function updateMotionControl(){
@@ -191,5 +194,5 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   updateMotionControl();
   function watchResolution(){const query=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);query.addEventListener('change',()=>{resize();watchResolution();},{once:true});}
   watchResolution();new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);document.addEventListener('themechange',schedule);
-  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
+  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;trackLabels.clear();densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
 }
