@@ -49,7 +49,7 @@ export function createClusterLabels({stage,palette}){
   function update({signature,groups,grouping,modes,visible,screen,width,height}){
     if(key!==signature){
       clear();key=signature;directory.replaceChildren();
-      const named=(groups||[]).filter(g=>g.theme),summary=element('summary',`${named.length} groups${grouping?` · ${percent(grouping.coverage)} assigned`:''}`);directory.append(summary);
+      const named=(groups||[]).filter(g=>g.theme),summary=element('summary',`${(groups||[]).length} groups`);directory.append(summary);
       for(const group of groups||[]){const row=element(group.theme?'button':'div',null,'profile-row');if(group.theme){row.type='button';row.onclick=()=>explain(row,group);}row.style.setProperty('--cluster',palette[group.id%palette.length]);row.append(element('i'),element('span',group.label||group.theme?.label),element('small',group.count.toLocaleString()));directory.append(row);}
     }
     if(!visible||!modes?.length){layer.dataset.visible='false';layer.style.opacity='0';layer.style.pointerEvents='none';close();return;}

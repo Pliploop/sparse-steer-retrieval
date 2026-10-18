@@ -3,12 +3,13 @@ const icons={
   instrumentation:'M4 7h16M7 4v16m5-16v16m5-16v16M4 17h16',
   vocals:'M9 5a3 3 0 0 1 6 0v6a3 3 0 0 1-6 0Zm-3 5v1a6 6 0 0 0 12 0v-1m-6 7v4m-3 0h6',
   mood:'M4 13c3-9 5 9 8 0s5 9 8-2',groove:'m4 15 4-6 4 9 4-12 4 6',
+  language:'M3 5h12M9 3v2m-4 3c1 4 4 7 8 9M13 5c-1 6-5 10-10 12m11 4 4-12 4 12m-6-4h4',
   speed:'M4 16a8 8 0 0 1 16 0m-8-1 5-7M5 19h14',
   energy:'m13 3-8 11h6l-1 7 9-12h-6z',production:'M5 4v16M12 4v16M19 4v16M3 9h4m3 7h4m3-9h4',
   __full:'M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z',
   text:'M5 5h14M12 5v14m-4 0h8',sparse:'m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5'
 };
-const descriptions={instrumentation:'Instruments & arrangement',vocals:'Voices & delivery',mood:'Emotion & atmosphere',groove:'Rhythm & movement',speed:'Slow, medium & fast tempo',energy:'Intensity & dynamics',production:'Recording & texture',__full:'All 512 audio dimensions',text:'Direct prompt embeddings',sparse:'Adam-inverted concept embeddings'};
+const descriptions={instrumentation:'Instruments & arrangement',vocals:'Voices & delivery',language:'Lyrics & spoken languages',mood:'Emotion & atmosphere',groove:'Rhythm & movement',speed:'Slow, medium & fast tempo',energy:'Intensity & dynamics',production:'Recording & texture',__full:'All 512 audio dimensions',text:'Direct prompt embeddings',sparse:'Adam-inverted concept embeddings'};
 const svg=path=>{const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('aria-hidden','true');const p=document.createElementNS(s.namespaceURI,'path');p.setAttribute('d',path);s.append(p);return s;};
 export function stylizeControls(){
   const controls=['lens-select','basis-select'].map(id=>{
