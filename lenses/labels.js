@@ -24,7 +24,7 @@ export function createTrackLabels({stage,points,openCard,closeCard,schedule}){
       const budget=Math.min(160,Math.floor(width*height/6000));
       for(const p of candidates){
         if(chosen.size>=budget)break;
-        const gap=radius+7,offsets=[[gap,-14,'right'],[-labelWidth-gap,-14,'left'],[-labelWidth/2,gap,'below'],[-labelWidth/2,-labelHeight-gap,'above']];
+        const gap=(p.kind==='seed'?12:(p.radius||radius))+7,offsets=[[gap,-14,'right'],[-labelWidth-gap,-14,'left'],[-labelWidth/2,gap,'below'],[-labelWidth/2,-labelHeight-gap,'above']];
         const preferred=labels.get(p.id)?.side;if(preferred)offsets.sort((a,b)=>(a[2]===preferred?-1:0)-(b[2]===preferred?-1:0));
         for(const[dx,dy,side]of offsets){const r={x:p.screen.x+dx-4,y:p.screen.y+dy-3,w:labelWidth+8,h:labelHeight+6};if(r.x<10||r.y<10||r.x+r.w>width-10||r.y+r.h>height-12||collides(r))continue;chosen.set(p.id,{dx,dy,side,width:labelWidth});add(r);break;}
       }
