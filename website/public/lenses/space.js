@@ -1,5 +1,5 @@
 import {createClusterLabels} from './clusters.js?v=language8';
-import {createTrackLabels} from './labels.js?v=language8';
+import {createTrackLabels} from './labels.js?v=neighbour-links1';
 import {densitySurface} from './density.js?v=language8';
 export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#9b9284'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -13,7 +13,7 @@ const STAR='M0-9 2.65-3.1 9.5-2.9 4.1 1.45 5.7 8 0 4.35-5.7 8-4.1 1.45-9.5-2.9-2
 // Only the seed and retrieval results have DOM hit targets; the cloud is canvas.
 export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loadTrack}){
   const stage=$('#map-stage'),world=$('#space-world'),canvas=node('canvas','map-canvas');
-  canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. Bright dots are the ten nearest neighbours in the selected similarity space. Hover a dot to preview; drag to pan; scroll to zoom.');
+  canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. The ten larger dots linked to the starting-song star are its nearest neighbours in the selected similarity space. Hover a dot to preview; drag to pan; scroll to zoom.');
   world.replaceChildren(canvas);const ctx=canvas.getContext('2d');
   const densityLayers=new Map();let densityElapsed=1000;
   let motionEnabled=localStorage.getItem('music-lenses-map-motion')!=='off';
@@ -77,7 +77,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     for(const p of points.values()){
       const color=rgb[p.cluster%palette.length],a=p.from;
       p.current={x:mix(a.x,p.x,eased),y:mix(a.y,p.y,eased),r:mix(a.r,color[0],eased),g:mix(a.g,color[1],eased),b:mix(a.b,color[2],eased)};
-      const pos=screen(p.current);p.screen=pos;
+      const pos=screen(p.current);p.screen=pos;p.radius=p.kind==='result'?radius*1.85:radius;
       if(pos.x< -15||pos.y< -15||pos.x>width+15||pos.y>height+15)continue;
       const cell=Math.floor(pos.x/32)+','+Math.floor(pos.y/32);if(!grid.has(cell))grid.set(cell,[]);grid.get(cell).push(p);
       if(p.kind==='seed')continue;
@@ -85,11 +85,23 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
       const packed=(Math.round(c.r)<<16)|(Math.round(c.g)<<8)|Math.round(c.b),key=layer*0x1000000+packed;
       let batch=batches.get(key);if(!batch){batch={layer,color:'#'+packed.toString(16).padStart(6,'0'),points:[]};batches.set(key,batch);}batch.points.push(p);
     }
+    // Use the same interpolated camera positions as the dots: links stay attached
+    // through lens changes, interrupted transitions, zoom and pan. Only the exact
+    // retrieval results are connected, never approximate 2D or comparison peers.
+    const seed=points.get(result.seed.id);
+    if(seed?.screen){
+      ctx.lineWidth=1.15;ctx.globalAlpha=.6;
+      for(const track of result.results){
+        const neighbour=points.get(track.id);if(!neighbour?.screen)continue;
+        const c=neighbour.current;ctx.strokeStyle=`rgb(${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)})`;
+        ctx.beginPath();ctx.moveTo(seed.screen.x,seed.screen.y);ctx.lineTo(neighbour.screen.x,neighbour.screen.y);ctx.stroke();
+      }
+    }
     // Batch matching colours instead of creating a DOM element per song. Colour
     // interpolation survives interrupted changes just like position does.
     for(const batch of [...batches.values()].sort((a,b)=>a.layer-b.layer)){
       ctx.fillStyle=batch.color;ctx.globalAlpha=opacity(batch.layer===2?'result':batch.layer===1?'base':'background');
-      ctx.beginPath();for(const p of batch.points){ctx.moveTo(p.screen.x+radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,radius,0,Math.PI*2);}ctx.fill();
+      ctx.beginPath();for(const p of batch.points){ctx.moveTo(p.screen.x+p.radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,p.radius,0,Math.PI*2);}ctx.fill();
     }
     ctx.globalAlpha=1;
     for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;}
@@ -151,8 +163,8 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     $('#map-cards').append(c);cards.set(track.id,c);return c;
   }
   function hit(x,y){
-    const cx=Math.floor(x/32),cy=Math.floor(y/32);let best=null,dist=100;
-    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const p of grid.get((cx+i)+','+(cy+j))||[]){const d=(p.screen.x-x)**2+(p.screen.y-y)**2;if(d<dist){dist=d;best=p;}}
+    const cx=Math.floor(x/32),cy=Math.floor(y/32);let best=null,dist=Infinity;
+    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const p of grid.get((cx+i)+','+(cy+j))||[]){const d=(p.screen.x-x)**2+(p.screen.y-y)**2;if(d<Math.max(10,(p.radius||0)+2)**2&&d<dist){dist=d;best=p;}}
     return best;
   }
   function render(r,options={}){
@@ -172,7 +184,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     else densityWorker.postMessage({key,points:r.plot,groups:r.clusters||[]});
     elapsed=0;lastFrame=null;duration=old.size&&motionEnabled?(viewChanged?1650:remaining):0;
     $('#map-empty').hidden=true;$('#map-title').textContent=r.method==='base'?'Full embedding space':`${r.category.name} space`;
-    $('#map-explanation').textContent='Bright dots: 10 nearest neighbours · hover to preview · drag / scroll to explore';
+    $('#map-explanation').textContent='Larger linked dots: 10 nearest neighbours · hover to preview · drag / scroll to explore';
     $('#cluster-legend').replaceChildren();resize();
   }
   canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p)openCard(p.id);else closeCard();});
