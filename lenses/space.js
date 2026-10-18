@@ -1,7 +1,7 @@
-import {createClusterLabels} from './clusters.js?v=paper-touch1';
-import {createTrackLabels} from './labels.js?v=paper-touch1';
-import {densitySurface} from './density.js?v=canvas2';
-export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff'];
+import {createClusterLabels} from './clusters.js?v=profiles1';
+import {createTrackLabels} from './labels.js?v=profiles1';
+import {densitySurface} from './density.js?v=profiles1';
+export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#e11d48','#84cc16','#0d9488','#d946ef','#a16207','#7c3aed','#0891b2','#f43f5e','#9b9284'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
 const BACKGROUND_OPACITY=.72;
@@ -21,15 +21,15 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
   const touches=new Map();let pinch=null,suppressTapUntil=0;
   let frame=0,elapsed=0,lastFrame=null,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
-  const densityWorker=new Worker(new URL('./density-worker.js?v=canvas2',import.meta.url),{type:'module'});
+  const densityWorker=new Worker(new URL('./density-worker.js?v=profiles1',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
-    // Composite the six soft fields once at their native grid resolution.
+    // Composite the soft group fields once at their native grid resolution.
     // Camera frames then scale one texture per view, including during a blend.
     const first=data.fields[0];if(!first)return;
     const surface=node('canvas');surface.width=first.width;surface.height=first.height;
     const densityContext=surface.getContext('2d');
     for(const field of data.fields)densityContext.drawImage(densitySurface(field,palette[field.id%palette.length],24),0,0);
-    const surfaces=[{bounds:first.bounds,surface,modes:data.fields.map(f=>({id:f.id,mode:f.mode}))}];
+    const surfaces=[{bounds:first.bounds,surface,modes:data.fields.map(f=>({id:f.id,mode:f.mode,peaks:f.peaks}))}];
     densityCache.set(data.key,surfaces);if(densityCache.size>12)densityCache.delete(densityCache.keys().next().value);
     if(result&&data.key===densityKey())setDensity(data.key,surfaces);
   };
@@ -41,7 +41,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   }
   const clusterLabels=createClusterLabels({stage,palette});
   const trackLabels=createTrackLabels({stage,points,openCard,closeCard,schedule});
-  function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
+  function densityKey(){return result.signature+':'+result.method+':'+(result.grouping_version||'geometric')+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
   function schedule(){if(!frame)frame=requestAnimationFrame(paint);}
@@ -75,7 +75,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     }
     const batches=new Map();grid=new Map();
     for(const p of points.values()){
-      const color=rgb[p.cluster%6],a=p.from;
+      const color=rgb[p.cluster%palette.length],a=p.from;
       p.current={x:mix(a.x,p.x,eased),y:mix(a.y,p.y,eased),r:mix(a.r,color[0],eased),g:mix(a.g,color[1],eased),b:mix(a.b,color[2],eased)};
       const pos=screen(p.current);p.screen=pos;
       if(pos.x< -15||pos.y< -15||pos.x>width+15||pos.y>height+15)continue;
@@ -93,7 +93,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     }
     ctx.globalAlpha=1;
     for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;}
-    clusterLabels.update({signature:densityKey(),groups:result.clusters,modes:densityLayers.get(densityKey())?.fields[0]?.modes,visible:showDensity&&t===1,screen,width,height});
+    clusterLabels.update({signature:densityKey(),groups:result.clusters,grouping:result.grouping,modes:densityLayers.get(densityKey())?.fields[0]?.modes,visible:showDensity&&t===1,screen,width,height});
     trackLabels.update(now,{zoom,radius,width,height,transitioning:t<1});
     if(openId)placeCard(cards.get(openId));
     if(t<1||(showDensity&&densityT<1))schedule();
@@ -162,7 +162,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     for(const t of[r.seed,...r.results,...r.baseline,...(r.representatives||[])])trackIndex.set(t.id,t);
     const bright=new Set(r.results.map(t=>t.id)),base=new Set(compare?r.baseline.map(t=>t.id):[]),old=new Map(points);points.clear();
     for(const p of r.plot){
-      const previous=old.get(p.id),color=rgb[p.cluster%6];
+      const previous=old.get(p.id),color=rgb[p.cluster%palette.length];
       const from=previous?.current?{...previous.current}:{x:p.x,y:p.y,r:color[0],g:color[1],b:color[2]};
       points.set(p.id,{...p,kind:p.id===r.seed.id?'seed':bright.has(p.id)?'result':base.has(p.id)?'base':'background',from,current:{...from}});
     }
