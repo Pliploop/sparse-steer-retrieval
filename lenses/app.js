@@ -1,12 +1,12 @@
-import {stylizeControls} from './selectors.js?v=profiles1';
-import {createSpace} from './space.js?v=profiles1';
+import {stylizeControls} from './selectors.js?v=language8';
+import {createSpace} from './space.js?v=language8';
 import {createSpotifyPlayer} from './spotify.js?v=canvas2';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,clusterThemes:null,semanticProfiles:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0};
 const trackIndices=new Map(),views=new Map(),captions=new Map(),affinities=new Map(),pending=new Map();
 let sequence=0,searchTimer;
 const syncSelectors=stylizeControls();
-const worker=new Worker(new URL('./search-worker.js?v=profiles1',import.meta.url),{type:'module'});
+const worker=new Worker(new URL('./search-worker.js?v=language8',import.meta.url),{type:'module'});
 worker.onmessage=({data})=>{const item=pending.get(data.id);if(!item)return;pending.delete(data.id);data.error?item.reject(Error(data.error)):item.resolve(data.result);};
 worker.onerror=()=>{for(const item of pending.values())item.reject(Error('Search could not start. Please reload the page.'));pending.clear();};
 function rpc(type,value={}){return new Promise((resolve,reject)=>{const id=++sequence;pending.set(id,{resolve,reject});worker.postMessage({id,type,...value});});}

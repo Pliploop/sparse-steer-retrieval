@@ -1,7 +1,7 @@
-import {createClusterLabels} from './clusters.js?v=profiles1';
-import {createTrackLabels} from './labels.js?v=profiles1';
-import {densitySurface} from './density.js?v=profiles1';
-export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#e11d48','#84cc16','#0d9488','#d946ef','#a16207','#7c3aed','#0891b2','#f43f5e','#9b9284'];
+import {createClusterLabels} from './clusters.js?v=language8';
+import {createTrackLabels} from './labels.js?v=language8';
+import {densitySurface} from './density.js?v=language8';
+export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#9b9284'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
 const BACKGROUND_OPACITY=.72;
@@ -21,7 +21,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
   const touches=new Map();let pinch=null,suppressTapUntil=0;
   let frame=0,elapsed=0,lastFrame=null,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
-  const densityWorker=new Worker(new URL('./density-worker.js?v=profiles1',import.meta.url),{type:'module'});
+  const densityWorker=new Worker(new URL('./density-worker.js?v=language8',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
     // Composite the soft group fields once at their native grid resolution.
     // Camera frames then scale one texture per view, including during a blend.
