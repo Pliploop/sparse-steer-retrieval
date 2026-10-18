@@ -11,7 +11,15 @@ export function estimateDensities(points,groups,{width=96,height=76,sigma=3.1}={
     for(let y=0;y<height;y++)for(let x=0;x<width;x++){let value=0;for(let d=-radius;d<=radius;d++)if(x+d>=0&&x+d<width)value+=field[y*width+x+d]*kernel[d+radius];middle[y*width+x]=value;}
     let maximum=0,peak=0;
     for(let y=0;y<height;y++)for(let x=0;x<width;x++){let value=0;for(let d=-radius;d<=radius;d++)if(y+d>=0&&y+d<height)value+=middle[(y+d)*width+x]*kernel[d+radius];smooth[y*width+x]=value;if(value>maximum){maximum=value;peak=y*width+x;}}
-    return{id:group.id,width,height,bounds,values:smooth,maximum,mode:{x:bounds.left+(peak%width)/(width-1)*(bounds.right-bounds.left),y:bounds.top-Math.floor(peak/width)/(height-1)*(bounds.top-bounds.bottom)}};
+    const candidates=[];
+    for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const i=y*width+x,v=smooth[i];if(v<maximum*.25||v===0)continue;let local=true;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(smooth[i+dy*width+dx]>v)local=false;
+      if(local)candidates.push({x,y,value:v});
+    }
+    candidates.sort((a,b)=>b.value-a.value);const selected=[{x:peak%width,y:Math.floor(peak/width),value:maximum}];
+    for(const p of candidates){if(selected.length>=10)break;if(selected.every(q=>Math.hypot(p.x-q.x,p.y-q.y)>=7))selected.push(p);}
+    const peaks=selected.map(p=>({x:bounds.left+p.x/(width-1)*(bounds.right-bounds.left),y:bounds.top-p.y/(height-1)*(bounds.top-bounds.bottom),strength:maximum?p.value/maximum:0}));
+    return{id:group.id,width,height,bounds,values:smooth,maximum,peaks,mode:{x:bounds.left+(peak%width)/(width-1)*(bounds.right-bounds.left),y:bounds.top-Math.floor(peak/width)/(height-1)*(bounds.top-bounds.bottom)}};
   });
 }
 export function densitySurface(field,color,opacity=49){
