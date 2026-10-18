@@ -1,4 +1,5 @@
-import {createTrackLabels} from './labels.js?v=dock-speed1';
+import {createClusterLabels} from './clusters.js?v=paper-touch1';
+import {createTrackLabels} from './labels.js?v=paper-touch1';
 import {densitySurface} from './density.js?v=canvas2';
 export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -18,6 +19,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   let motionEnabled=localStorage.getItem('music-lenses-map-motion')!=='off';
   const points=new Map(),cards=new Map(),trackIndex=new Map(),metadataCache=new Map(),densityCache=new Map();
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
+  const touches=new Map();let pinch=null,suppressTapUntil=0;
   let frame=0,elapsed=0,lastFrame=null,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
   const densityWorker=new Worker(new URL('./density-worker.js?v=canvas2',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
@@ -27,7 +29,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     const surface=node('canvas');surface.width=first.width;surface.height=first.height;
     const densityContext=surface.getContext('2d');
     for(const field of data.fields)densityContext.drawImage(densitySurface(field,palette[field.id%palette.length],24),0,0);
-    const surfaces=[{bounds:first.bounds,surface}];
+    const surfaces=[{bounds:first.bounds,surface,modes:data.fields.map(f=>({id:f.id,mode:f.mode}))}];
     densityCache.set(data.key,surfaces);if(densityCache.size>12)densityCache.delete(densityCache.keys().next().value);
     if(result&&data.key===densityKey())setDensity(data.key,surfaces);
   };
@@ -37,6 +39,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     let layer=densityLayers.get(key);if(!layer){layer={fields,opacity:0,from:0,target:1};densityLayers.set(key,layer);}else layer.target=1;
     densityElapsed=motionEnabled?0:1000;schedule();
   }
+  const clusterLabels=createClusterLabels({stage,palette});
   const trackLabels=createTrackLabels({stage,points,openCard,closeCard,schedule});
   function densityKey(){return result.signature+':'+result.method+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
@@ -90,6 +93,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     }
     ctx.globalAlpha=1;
     for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;}
+    clusterLabels.update({signature:densityKey(),groups:result.clusters,modes:densityLayers.get(densityKey())?.fields[0]?.modes,visible:showDensity&&t===1,screen,width,height});
     trackLabels.update(now,{zoom,radius,width,height,transitioning:t<1});
     if(openId)placeCard(cards.get(openId));
     if(t<1||(showDensity&&densityT<1))schedule();
@@ -174,10 +178,46 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p)openCard(p.id);else closeCard();});
   canvas.addEventListener('pointerleave',e=>{if(!e.relatedTarget?.closest('.map-card'))closeCard();});
   stage.addEventListener('wheel',e=>{if(e.target.closest('.spatial-content'))return;e.preventDefault();closeCard(true);const rect=stage.getBoundingClientRect(),x=e.clientX-rect.left-width/2,y=e.clientY-rect.top-height/2,next=clamp(zoom*Math.exp(-e.deltaY*.0015),.55,16),ratio=next/zoom;pan={x:x-(x-pan.x)*ratio,y:y-(y-pan.y)*ratio};zoom=next;schedule();},{passive:false});
-  stage.addEventListener('pointerdown',e=>{if(e.target.closest('button,.spatial-content'))return;closeCard(true);drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false;canvas.style.cursor='grabbing';});
-  window.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;if(moved){pan={x:drag.px+dx,y:drag.py+dy};schedule();}});
-  window.addEventListener('pointerup',e=>{if(!drag)return;drag=null;canvas.style.cursor='grab';if(!moved){const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);if(p)openCard(p.id);}});
-  window.addEventListener('pointercancel',()=>{drag=null;});
+  function touchPose(){
+    const [a,b]=[...touches.values()],rect=stage.getBoundingClientRect();
+    return{x:(a.x+b.x)/2-rect.left-width/2,y:(a.y+b.y)/2-rect.top-height/2,distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))};
+  }
+  stage.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.spatial-content')||e.pointerType!=='touch'&&e.target.closest('button'))return;
+    closeCard(true);
+    if(e.pointerType==='touch'){
+      touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(touches.size>=2){
+        if(touches.size===2){pinch={...touchPose(),zoom,pan:{...pan}};drag=null;moved=true;for(const id of touches.keys())stage.setPointerCapture(id);}
+        return;
+      }
+    }
+    drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false;canvas.style.cursor='grabbing';
+  });
+  window.addEventListener('pointermove',e=>{
+    if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch&&touches.size>=2){
+      const pose=touchPose(),next=clamp(pinch.zoom*pose.distance/pinch.distance,.55,16),ratio=next/pinch.zoom;
+      pan={x:pose.x-(pinch.x-pinch.pan.x)*ratio,y:pose.y-(pinch.y-pinch.pan.y)*ratio};zoom=next;moved=true;schedule();return;
+    }
+    if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if(Math.abs(dx)+Math.abs(dy)>5)moved=true;
+    if(moved){pan={x:drag.px+dx,y:drag.py+dy};schedule();}
+  });
+  function endPointer(e,cancelled=false){
+    const wasTouch=touches.delete(e.pointerId);
+    if(wasTouch&&pinch){
+      suppressTapUntil=performance.now()+400;
+      if(touches.size>=2)pinch={...touchPose(),zoom,pan:{...pan}};
+      else{pinch=null;const remaining=touches.values().next().value;drag=remaining?{x:remaining.x,y:remaining.y,px:pan.x,py:pan.y}:null;}
+      moved=true;return;
+    }
+    if(!drag)return;drag=null;canvas.style.cursor='grab';
+    if(!cancelled&&!moved&&performance.now()>suppressTapUntil){const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);if(p)openCard(p.id);}
+  }
+  window.addEventListener('pointerup',e=>endPointer(e));
+  window.addEventListener('pointercancel',e=>endPointer(e,true));
+  stage.addEventListener('click',e=>{if(performance.now()<suppressTapUntil){e.preventDefault();e.stopPropagation();}},true);
   document.addEventListener('pointerdown',e=>{if(!stage.contains(e.target))closeCard(true);});
   stage.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCard(true);document.activeElement?.blur();}});
   $('#reset-map').onclick=()=>{closeCard(true);fit();};$('#zoom-in').onclick=()=>{closeCard(true);zoom=clamp(zoom*1.2,.55,16);schedule();};$('#zoom-out').onclick=()=>{closeCard(true);zoom=clamp(zoom/1.2,.55,16);schedule();};
@@ -194,5 +234,5 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   updateMotionControl();
   function watchResolution(){const query=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);query.addEventListener('change',()=>{resize();watchResolution();},{once:true});}
   watchResolution();new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);document.addEventListener('themechange',schedule);
-  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;trackLabels.clear();densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
+  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);result=null;trackLabels.clear();clusterLabels.clear();densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
 }

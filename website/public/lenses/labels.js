@@ -16,7 +16,7 @@ export function createTrackLabels({stage,points,openCard,closeCard,schedule}){
       function add(r){cells(r,key=>{if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(r);});}
       function collides(r){let hit=false;cells(r,key=>{for(const b of buckets.get(key)||[])if(r.x<b.x+b.w&&r.x+r.w>b.x&&r.y<b.y+b.h&&r.y+r.h>b.y){hit=true;break;}});return hit;}
       const stageRect=stage.getBoundingClientRect();
-      for(const element of document.querySelectorAll('.floating-controls,.top-left-tools,.top-right-tools,.canvas-context,#player:not([hidden])')){const r=element.getBoundingClientRect();add({x:r.x-stageRect.x-10,y:r.y-stageRect.y-8,w:r.width+20,h:r.height+16});}
+      for(const element of document.querySelectorAll('.floating-controls,.top-left-tools,.top-right-tools,.canvas-context,.zoom-pill,#cluster-labels[data-visible=true] button,#player:not([hidden])')){const r=element.getBoundingClientRect();add({x:r.x-stageRect.x-10,y:r.y-stageRect.y-8,w:r.width+20,h:r.height+16});}
       const oldOrder=new Map([...labels.keys()].map((id,i)=>[id,i]));
       const priority=p=>p.kind==='seed'?0:p.kind==='result'?1:labels.has(p.id)?2:3;
       const candidates=[...points.values()].filter(p=>p.screen&&p.screen.x>12&&p.screen.x<width-12&&p.screen.y>12&&p.screen.y<height-12);
