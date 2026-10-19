@@ -132,7 +132,7 @@ html,body.canvas-page{width:100%;height:100%;margin:0;overflow:hidden}.canvas-pa
 
 /* A single quiet transport floats above the music; the dock stays unchanged. */
 .canvas-page .canvas-context .seed-panel{display:none}
-.canvas-page .music-player{position:fixed;left:50%;top:20px;right:auto;bottom:auto;transform:translateX(-50%);z-index:66;display:flex;align-items:center;gap:16px;width:min(410px,calc(100vw - 32px));max-width:none;padding:12px 19px 12px 12px;border:1px solid #ffffff70;border-bottom-color:#8e7d5c1a;border-radius:18px;background:rgba(255,255,255,.22);box-shadow:0 6px 26px #4b3a2610,inset 0 1px 0 #ffffff66;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:var(--text)}
+.canvas-page .music-player{position:fixed;left:50%;top:20px;right:auto;bottom:auto;transform:translateX(-50%);z-index:66;display:flex;align-items:center;gap:16px;width:min(410px,calc(100vw - 32px));max-width:none;padding:12px 19px 12px 12px;border:0;border-radius:18px;background:rgba(255,255,255,.22);box-shadow:0 6px 26px #4b3a2609;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:var(--text)}
 .music-player .player-track{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden}
 .music-player .player-track strong{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;line-height:1.35;font-weight:500;color:var(--text)}
 .music-player .player-track span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;line-height:1.35;color:var(--card-muted)}
@@ -140,12 +140,12 @@ html,body.canvas-page{width:100%;height:100%;margin:0;overflow:hidden}.canvas-pa
 .music-player #player-play::before{content:'';display:block;width:12px;height:12px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m5 3 7 5-7 5Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat}
 .music-player #player-play[aria-pressed=true]::before{mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 4v8m6-8v8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")}
 .music-player #player-play:hover{background:color-mix(in srgb,var(--playing-color) 14%,transparent)}
-.player-wave{height:29px;width:76px;flex:none;display:flex;align-items:center;justify-content:center;gap:1.5px;color:var(--playing-color);opacity:.65;transition:color .7s,opacity .3s}
-.player-wave i{height:var(--bar-height);width:1.6px;flex:none;border-radius:2px;background:currentColor;transform:scaleY(.24);animation:player-wave var(--bar-duration) var(--bar-delay) ease-in-out infinite alternate;animation-play-state:paused;transition:background .7s}
-.music-player[data-playing=true] .player-wave{opacity:1}.music-player[data-playing=true] .player-wave i{animation-play-state:running}
-@keyframes player-wave{from{transform:scaleY(.24)}to{transform:scaleY(1)}}
+.player-wave{height:32px;width:96px;flex:none;color:var(--playing-color);opacity:.8;transition:color .7s,opacity .3s}
+.player-wave svg{display:block;width:100%;height:100%;overflow:visible}
+.player-wave line{stroke:currentColor;stroke-width:2.8;stroke-linecap:round;fill:none}
+.music-player[data-playing=true] .player-wave{opacity:1}
 .music-player[data-loading=true] .player-wave{animation:audio-loading 1.2s ease-in-out infinite alternate}@keyframes audio-loading{to{opacity:.25}}
-:root[data-theme=dark] .canvas-page .music-player{background:rgba(255,255,255,.055);border-color:#ffffff1e;box-shadow:0 8px 30px #0002,inset 0 1px 0 #ffffff10}
+:root[data-theme=dark] .canvas-page .music-player{background:rgba(255,255,255,.055);border:0;box-shadow:0 8px 30px #0001}
 /* One compositor-animated beacon, rather than repainting 5,000 dots for a pulse. */
 .playing-beacon{position:absolute;left:0;top:0;z-index:7;pointer-events:none;color:var(--beacon-color)}
 .playing-beacon i{position:absolute;left:0;top:0;width:var(--beacon-size);height:var(--beacon-size);border:1px solid currentColor;border-radius:50%;transform:translate(-50%,-50%);animation:playing-dot 1.8s ease-out infinite}
@@ -159,8 +159,8 @@ html,body.canvas-page{width:100%;height:100%;margin:0;overflow:hidden}.canvas-pa
 .map-card .spatial-next{display:flex;align-items:center;gap:8px;width:100%;padding:12px 0 0;margin-top:10px;border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent);font-size:10px;color:var(--text);text-align:left}
 .map-card .spatial-next::after{display:none}.spatial-next svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.3;flex:none}.spatial-next:hover svg{fill:#ffb000;stroke:#ffb000}.map-card .spatial-body .play-button{border-radius:50%;background:#ffffff20;border:1px solid color-mix(in srgb,var(--cluster) 20%,transparent);width:34px;height:34px}
 @media(max-width:1000px){.canvas-page .music-player{top:76px}}
-@media(max-width:700px){.canvas-page .music-player{top:74px;width:min(350px,calc(100vw - 32px));padding:10px 15px 10px 10px;gap:12px;border-radius:16px}.player-wave{width:63px;gap:1px}.player-wave i{width:1.4px}.music-player .player-track strong{font-size:11px}.music-player .player-track span{font-size:9px}.map-card .spatial-next{min-height:44px}.preview-close{width:32px;height:32px}.map-card .spatial-body .play-button{width:40px;height:40px}}
-@media(prefers-reduced-motion:reduce){.player-wave i,.playing-beacon i,.music-player[data-loading=true] .player-wave{animation:none}.music-player[data-playing=true] .player-wave i{transform:scaleY(.65)}.playing-beacon i{opacity:.55}.playing-beacon i+i{display:none}}
+@media(max-width:700px){.canvas-page .music-player{top:74px;width:min(350px,calc(100vw - 32px));padding:10px 15px 10px 10px;gap:12px;border-radius:16px}.player-wave{width:82px}.player-wave line{stroke-width:3}.music-player .player-track strong{font-size:11px}.music-player .player-track span{font-size:9px}.map-card .spatial-next{min-height:44px}.preview-close{width:32px;height:32px}.map-card .spatial-body .play-button{width:40px;height:40px}}
+@media(prefers-reduced-motion:reduce){.playing-beacon i,.music-player[data-loading=true] .player-wave{animation:none}.playing-beacon i{opacity:.55}.playing-beacon i+i{display:none}}
 @media(max-width:700px){.canvas-page .zoom-pill{top:143px;bottom:auto;right:16px}}
 /* Native top-layer previews sample the whole canvas for their glass backdrop. */
 .map-card .spatial-content[popover]{position:fixed;inset:auto;margin:0;color:var(--text)}

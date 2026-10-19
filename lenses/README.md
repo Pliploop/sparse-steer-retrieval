@@ -38,9 +38,10 @@ variance/rank editing are exposed here; those stay in the local research app.
 ## Playback
 
 The top-centre glass transport contains play/pause, activity bars, title and
-artist. Activity bars and a single compositor-animated dot pulse follow the
-actual playback state and current map colour. Bars indicate activity, not
-analysed Spotify audio. Cards open on hover/focus/tap; only their explicit star
+artist. A rounded SVG waveform reads live audio samples through Web Audio at 30 Hz;
+its animation stops on pause and stays still with reduced motion enabled.
+The waveform and a single compositor-animated dot pulse use the current map colour.
+The waveform does not trigger map redraws. Optional Spotify audio is not analysed. Cards open on hover/focus/tap; only their explicit star
 button changes the starting song.
 
 `playback.json` points to the public Hugging Face audio-only Space
