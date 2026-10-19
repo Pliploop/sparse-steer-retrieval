@@ -3,7 +3,7 @@
 A standalone static page at `/sparse-steer-retrieval/lenses/`, linked from the
 project navigation and hero. `npm run build` copies it into `dist/lenses/`.
 The existing GitHub Pages workflow publishes it with the rest of the site.
-There is no app server, API key or audio file in this package.
+This static package contains no API key or audio file. Exact snippets stream from a separate CPU audio service.
 
 ## What runs in the browser
 
@@ -43,17 +43,18 @@ actual playback state and current map colour. Bars indicate activity, not
 analysed Spotify audio. Cards open on hover/focus/tap; only their explicit star
 button changes the starting song.
 
-`playback.json` defaults to `audio: null`. Buttons then offer an external Spotify
-link or an explicitly requested **visible**, unmodified 152-pixel Spotify embed.
-No widget is loaded by default and none is hidden during playback. Spotify
-controls availability and autoplay; its preview may cover a different passage
-from the Music4All clip. No Spotify credentials or preview scraping are used.
+`playback.json` points to the public Hugging Face audio-only Space
+`Pliploop/music-lenses-audio-stream`. It serves the original 30-second MP3 clips
+from a read-only mount of the private `Pliploop/music-lenses-audio` dataset.
+The individual clips are intentionally public through this endpoint; private
+repository visibility does not restrict public playback. No Hub token or SSH
+credential is sent to the browser. The service supports HTTP byte ranges and
+cross-origin range fetches from the project website.
 
-The same assets support a separate private exact-clip host. Its dynamic
-`playback.json` supplies `audio.base_url`, `audio.extension` and `audio.duration`.
-The browser plays those original 30-second excerpts directly, without Spotify.
-The source checkout's `concept_lab/hf/` contains the private Docker Space and
-read-only private dataset-volume deployment. Private audio is not included here.
+The default player uses those exact clips without any Spotify iframe. A
+`playback.json` with `audio: null` can still enable the explicit Spotify fallback:
+an external link or a requested visible widget, never a hidden player.
+The source checkout's `concept_lab/hf/` also contains the private full-app Space.
 
 - https://developer.spotify.com/documentation/embeds/references/iframe-api
 - https://developer.spotify.com/documentation/embeds/terms
