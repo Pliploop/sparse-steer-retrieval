@@ -79,7 +79,7 @@ window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea
 async function init(){
   try{
     const r=await fetch(new URL('manifest.json',base),{cache:'no-cache'});if(!r.ok)throw Error('The music collection could not load.');state.manifest=await r.json();
-    try{const config=await fetch(new URL('playback.json',import.meta.url),{cache:'no-cache'});if(config.ok)state.playback=await config.json();}catch{}
+    try{const config=await fetch(new URL('playback.json?v=audio-stream1',import.meta.url),{cache:'no-cache'});if(config.ok)state.playback=await config.json();}catch{}
     const grouping=state.manifest.semantic_groups;if(grouping){try{const response=await fetch(new URL(grouping.path+'?v='+grouping.version,base));if(response.ok)state.semanticProfiles=await response.json();}catch{}}
     const annotations=state.manifest.annotations;if(!state.semanticProfiles&&annotations){try{const response=await fetch(new URL(annotations.path+'?v='+annotations.version,base));if(response.ok)state.clusterThemes=await response.json();}catch{/* The map remains usable without descriptive labels. */}}
     state.catalog=await resource(state.manifest.catalog);state.catalog.tracks.forEach((row,i)=>trackIndices.set(row[0],i));
