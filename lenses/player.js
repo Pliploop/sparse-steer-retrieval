@@ -27,6 +27,7 @@ export function createTransport({onToggle}){
       const height=3+levels[i]*24;
       bars[i].setAttribute('y1',((32-height)/2).toFixed(2));bars[i].setAttribute('y2',((32+height)/2).toFixed(2));
     }
+    document.dispatchEvent(new CustomEvent('music-lenses-signal',{detail:{id:current?.id,levels}}));
   }
   function animateWave(now){
     waveFrame=0;if(!playing||!signal||!analyser||document.hidden)return;

@@ -1,5 +1,5 @@
 import {createClusterLabels} from './clusters.js?v=language8';
-import {createTrackLabels} from './labels.js?v=neighbour-links1';
+import {createWaveformLayer} from './waveforms.js?v=map-waves1';
 import {densitySurface} from './density.js?v=language8';
 export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#9b9284'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -11,9 +11,9 @@ const opacity=kind=>kind==='result'?1:kind==='base'?.88:BACKGROUND_OPACITY;
 const STAR='M0-9 2.65-3.1 9.5-2.9 4.1 1.45 5.7 8 0 4.35-5.7 8-4.1 1.45-9.5-2.9-2.65-3.1Z';
 // Camera coordinates are applied before drawing, never as a CSS bitmap scale.
 // Only the seed and retrieval results have DOM hit targets; the cloud is canvas.
-export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loadTrack}){
+export function createSpace({playButton,play,loadPeaks,chooseSeed,highlight,isBusy,getTrack,loadTrack}){
   const stage=$('#map-stage'),world=$('#space-world'),canvas=node('canvas','map-canvas');
-  canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. The ten larger dots linked to the starting-song star are its nearest neighbours in the selected similarity space. Hover a dot to preview; drag to pan; scroll to zoom.');
+  canvas.id='map-canvas';canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Music map. The ten larger dots linked to the starting-song star are its nearest neighbours. Zoom in to reveal waveforms; click a waveform to play. Info opens details; star changes the starting song. Drag to pan; scroll or pinch to zoom.');
   world.replaceChildren(canvas);const ctx=canvas.getContext('2d');
   const beacon=node('div','playing-beacon');beacon.setAttribute('aria-hidden','true');beacon.hidden=true;beacon.append(node('i'),node('i'));stage.append(beacon);
   let playingId=null;
@@ -22,7 +22,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   let motionEnabled=localStorage.getItem('music-lenses-map-motion')!=='off';
   const points=new Map(),cards=new Map(),trackIndex=new Map(),metadataCache=new Map(),densityCache=new Map();
   let result,compare=false,width=0,height=0,pixelRatio=0,zoom=1,pan={x:0,y:0},drag=null,moved=false;
-  const touches=new Map();let pinch=null,suppressTapUntil=0,touchPreview=false;
+  const touches=new Map();let pinch=null,suppressTapUntil=0,touchPreview=false,longPressTimer=0,longPressed=false;
   let frame=0,elapsed=0,lastFrame=null,duration=0,openId=null,focusedId=null,closeTimer=0,metadataEpoch=0,activeGroup=null,showDensity=false,grid=new Map();
   const densityWorker=new Worker(new URL('./density-worker.js?v=language8',import.meta.url),{type:'module'});
   densityWorker.onmessage=({data})=>{
@@ -43,7 +43,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     densityElapsed=motionEnabled?0:1000;schedule();
   }
   const clusterLabels=createClusterLabels({stage,palette});
-  const trackLabels=createTrackLabels({stage,points,openCard,closeCard,schedule});
+  const waveforms=createWaveformLayer({stage,points,loadPeaks,play,trackFor,chooseSeed,schedule,inspect:id=>{openCard(id,true);touchPreview=true;}});
   function densityKey(){return result.signature+':'+result.method+':'+(result.grouping_version||'geometric')+':'+result.plot.length;}
   function anchor(p){const mobile=width<700;return{x:width*(.5+p.x*.38),y:height*((mobile?.48:.47)-p.y*(mobile?.30:.36))};}
   function screen(p){const a=anchor(p);return{x:width/2+(a.x-width/2)*zoom+pan.x,y:height/2+(a.y-height/2)*zoom+pan.y};}
@@ -88,6 +88,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
       const packed=(Math.round(c.r)<<16)|(Math.round(c.g)<<8)|Math.round(c.b),key=layer*0x1000000+packed;
       let batch=batches.get(key);if(!batch){batch={layer,color:'#'+packed.toString(16).padStart(6,'0'),points:[]};batches.set(key,batch);}batch.points.push(p);
     }
+    waveforms.update(now,{zoom,radius,width,height,transitioning:t<1});
     // Use the same interpolated camera positions as the dots: links stay attached
     // through lens changes, interrupted transitions, zoom and pan. Only the exact
     // retrieval results are connected, never approximate 2D or comparison peers.
@@ -103,22 +104,22 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     // Batch matching colours instead of creating a DOM element per song. Colour
     // interpolation survives interrupted changes just like position does.
     for(const batch of [...batches.values()].sort((a,b)=>a.layer-b.layer)){
-      ctx.fillStyle=batch.color;ctx.globalAlpha=opacity(batch.layer===2?'result':batch.layer===1?'base':'background');
-      ctx.beginPath();for(const p of batch.points){ctx.moveTo(p.screen.x+p.radius,p.screen.y);ctx.arc(p.screen.x,p.screen.y,p.radius,0,Math.PI*2);}ctx.fill();
+      ctx.fillStyle=batch.color;ctx.globalAlpha=opacity(batch.layer===2?'result':batch.layer===1?'base':'background')*(batch.layer===0?1-.76*waveforms.reveal:1);
+      ctx.beginPath();for(const p of batch.points){const r=p.radius*(1-(p.waveReveal||0));ctx.moveTo(p.screen.x+r,p.screen.y);ctx.arc(p.screen.x,p.screen.y,r,0,Math.PI*2);}ctx.fill();
     }
+    waveforms.draw(ctx);
     ctx.globalAlpha=1;
-    for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;c.classList.toggle('playing',playingId===id);}
-    const sounding=points.get(playingId);beacon.hidden=!sounding?.screen;
+    for(const[id,c]of cards){const p=points.get(id);if(p?.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;c.classList.toggle('playing',playingId===id);const waveVisible=waveforms.isVisible(id);c.classList.toggle('wave-visible',waveVisible);c.querySelector('.spatial-marker').tabIndex=waveVisible?-1:0;}
+    const sounding=points.get(playingId);beacon.hidden=!sounding?.screen||waveforms.isVisible(playingId);
     if(sounding?.screen){const p=sounding.screen,c=sounding.current;beacon.style.transform=`translate(${p.x}px,${p.y}px)`;beacon.style.setProperty('--beacon-color',sounding.kind==='seed'?'#f59e0b':`rgb(${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)})`);beacon.style.setProperty('--beacon-size',((sounding.kind==='seed'?11:sounding.radius)+3)*2+'px');}
     clusterLabels.update({signature:densityKey(),groups:result.clusters,grouping:result.grouping,modes:densityLayers.get(densityKey())?.fields[0]?.modes,visible:showDensity&&t===1,screen,width,height});
-    trackLabels.update(now,{zoom,radius,width,height,transitioning:t<1});
     if(openId)placeCard(cards.get(openId));
     if(t<1||(showDensity&&densityT<1))schedule();
   }
   function focus(id,on){focusedId=on?id:null;/* Hover never promotes a non-neighbour to full opacity. */}
   function closeCard(immediate=false){
     clearTimeout(closeTimer);if(immediate)touchPreview=false;else if(touchPreview)return;
-    const close=()=>{const c=cards.get(openId);if(!immediate&&(c?.matches(':hover')||trackLabels.isHovered(openId)))return;if(c){const panel=c.querySelector('.spatial-content');if(panel.matches(':popover-open'))panel.hidePopover();c.classList.remove('expanded');c.querySelector('.spatial-marker').setAttribute('aria-expanded','false');if(c.dataset.transient){c.remove();cards.delete(openId);}}openId=null;};
+    const close=()=>{const c=cards.get(openId);if(!immediate&&(c?.matches(':hover')||waveforms.isHovered(openId)))return;if(c){const panel=c.querySelector('.spatial-content');if(panel.matches(':popover-open'))panel.hidePopover();c.classList.remove('expanded');c.querySelector('.spatial-marker').setAttribute('aria-expanded','false');if(c.dataset.transient){c.remove();cards.delete(openId);}}openId=null;};
     if(immediate)close();else closeTimer=setTimeout(close,180);
   }
   function placeCard(c){
@@ -129,8 +130,8 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     panel.style.left=(clamp(19,15-p.x,width-15-p.x-panelWidth)+(floating?p.x:0))+'px';
     panel.style.top=(clamp(-25,header-p.y,height-reserve-p.y-(panel.offsetHeight||190))+(floating?p.y:0))+'px';
   }
-  function openCard(id){
-    clearTimeout(closeTimer);if(isBusy()||drag)return;
+  function openCard(id,fromWave=false){
+    clearTimeout(closeTimer);if(isBusy()||(drag&&!fromWave))return;
     const p=points.get(id);if(!p)return;
     if(openId!==id){closeCard(true);openId=id;}
     const c=cards.get(id)||ensureCard(trackFor(p),p.kind,p,true);
@@ -169,7 +170,7 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
       const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');icon.setAttribute('viewBox','-12 -12 24 24');icon.setAttribute('aria-hidden','true');icon.setAttribute('class','seed-star');const path=document.createElementNS(icon.namespaceURI,'path');path.setAttribute('d',STAR);icon.append(path);marker.append(icon);
     }
     marker.onclick=e=>{e.stopPropagation();openCard(track.id);};marker.onfocus=()=>openCard(track.id);
-    c.append(marker,cardContent(track,kind));c.onpointerenter=e=>{if(e.pointerType==='mouse'){touchPreview=false;openCard(track.id);}};c.onpointerleave=e=>{if(e.pointerType==='mouse')closeCard();};
+    c.append(marker,cardContent(track,kind));c.onpointerenter=e=>{if(e.pointerType==='mouse'&&!waveforms.isVisible(track.id)){touchPreview=false;openCard(track.id);}};c.onpointerleave=e=>{if(e.pointerType==='mouse')closeCard();};
     c.addEventListener('focusin',()=>openCard(track.id));c.addEventListener('focusout',e=>{if(!c.contains(e.relatedTarget))closeCard();});
     if(p.screen)c.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;
     $('#map-cards').append(c);cards.set(track.id,c);return c;
@@ -196,10 +197,10 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     else densityWorker.postMessage({key,points:r.plot,groups:r.clusters||[]});
     elapsed=0;lastFrame=null;duration=old.size&&motionEnabled?(viewChanged?1650:remaining):0;
     $('#map-empty').hidden=true;$('#map-title').textContent=r.method==='base'?'Full embedding space':`${r.category.name} space`;
-    $('#map-explanation').textContent='Larger linked dots: 10 nearest neighbours · hover to preview · drag / scroll to explore';
+    $('#map-explanation').textContent='Zoom in to listen · waveform: play / pause · ⓘ details · ☆ starting song';
     $('#cluster-legend').replaceChildren();resize();
   }
-  canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;touchPreview=false;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p)openCard(p.id);else closeCard();});
+  canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p&&!waveforms.isVisible(p.id)){touchPreview=false;openCard(p.id);}else closeCard();});
   canvas.addEventListener('pointerleave',e=>{if(!e.relatedTarget?.closest('.map-card'))closeCard();});
   stage.addEventListener('wheel',e=>{if(e.target.closest('.spatial-content'))return;e.preventDefault();closeCard(true);const rect=stage.getBoundingClientRect(),x=e.clientX-rect.left-width/2,y=e.clientY-rect.top-height/2,next=clamp(zoom*Math.exp(-e.deltaY*.0015),.55,16),ratio=next/zoom;pan={x:x-(x-pan.x)*ratio,y:y-(y-pan.y)*ratio};zoom=next;schedule();},{passive:false});
   function touchPose(){
@@ -207,8 +208,9 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
     return{x:(a.x+b.x)/2-rect.left-width/2,y:(a.y+b.y)/2-rect.top-height/2,distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y))};
   }
   stage.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.spatial-content')){if(e.pointerType==='touch'&&!touches.size)suppressTapUntil=0;return;}
-    if(e.pointerType!=='touch'&&e.target.closest('button'))return;
+    if(e.target.closest('.spatial-content,.wave-action')){if(e.pointerType==='touch'&&!touches.size)suppressTapUntil=0;return;}
+    if(e.pointerType!=='touch'&&e.target.closest('button:not(.wave-play)'))return;
+    clearTimeout(longPressTimer);longPressed=false;
     closeCard(true);
     if(e.pointerType==='touch'){
       touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -217,7 +219,8 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
         return;
       }
     }
-    drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y,id:e.target.closest('.map-card')?.dataset.track};moved=false;canvas.style.cursor='grabbing';
+    drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y,id:e.target.closest('.music-wave,.map-card')?.dataset.track};moved=false;canvas.style.cursor='grabbing';
+    if(e.pointerType==='touch'&&drag.id&&waveforms.isVisible(drag.id))longPressTimer=setTimeout(()=>{if(drag&&!moved&&!pinch){longPressed=true;waveforms.inspect(drag.id);}},500);
   });
   window.addEventListener('pointermove',e=>{
     if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -226,10 +229,11 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
       pan={x:pose.x-(pinch.x-pinch.pan.x)*ratio,y:pose.y-(pinch.y-pinch.pan.y)*ratio};zoom=next;moved=true;schedule();return;
     }
     if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-    if(Math.abs(dx)+Math.abs(dy)>5)moved=true;
+    if(Math.abs(dx)+Math.abs(dy)>5){moved=true;clearTimeout(longPressTimer);}
     if(moved){pan={x:drag.px+dx,y:drag.py+dy};schedule();}
   });
   function endPointer(e,cancelled=false){
+    clearTimeout(longPressTimer);
     const wasTouch=touches.delete(e.pointerId);
     if(wasTouch&&pinch){
       suppressTapUntil=performance.now()+400;
@@ -238,7 +242,8 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
       moved=true;return;
     }
     if(!drag)return;const tappedId=drag.id;drag=null;canvas.style.cursor='grab';
-    if(!cancelled&&!moved&&performance.now()>suppressTapUntil){const rect=stage.getBoundingClientRect(),p=points.get(tappedId)||hit(e.clientX-rect.left,e.clientY-rect.top);if(p)openCard(p.id);if(wasTouch){touchPreview=!!p;suppressTapUntil=performance.now()+400;}}
+    if(!cancelled&&!moved&&!longPressed&&performance.now()>suppressTapUntil){const rect=stage.getBoundingClientRect(),p=points.get(tappedId)||hit(e.clientX-rect.left,e.clientY-rect.top);if(p){if(waveforms.isVisible(p.id)){waveforms.activate(p.id);touchPreview=false;}else{openCard(p.id);touchPreview=wasTouch;}}else waveforms.select(null);}
+    if(wasTouch||moved||longPressed)suppressTapUntil=performance.now()+400;
   }
   window.addEventListener('pointerup',e=>endPointer(e));
   window.addEventListener('pointercancel',e=>endPointer(e,true));
@@ -259,5 +264,5 @@ export function createSpace({playButton,chooseSeed,highlight,isBusy,getTrack,loa
   updateMotionControl();
   function watchResolution(){const query=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);query.addEventListener('change',()=>{resize();watchResolution();},{once:true});}
   watchResolution();new ResizeObserver(resize).observe(stage);window.addEventListener('resize',resize);document.addEventListener('themechange',schedule);
-  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);beacon.hidden=true;result=null;trackLabels.clear();clusterLabels.clear();densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
+  return{render,focus,fit,setStudy(study,hidden){closeCard(true);$('#study-map-cover').hidden=!(study&&hidden);stage.classList.toggle('blind',study&&hidden);},clear(){closeCard(true);beacon.hidden=true;result=null;waveforms.clear();clusterLabels.clear();densityLayers.clear();points.clear();cards.clear();trackIndex.clear();$('#map-cards').replaceChildren();$('#cluster-legend').replaceChildren();schedule();}};
 }

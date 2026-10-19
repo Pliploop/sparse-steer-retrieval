@@ -1,7 +1,8 @@
 import {stylizeControls} from './selectors.js?v=language8';
-import {createSpace,palette} from './space.js?v=glass-player1';
-import {createClipPlayer} from './player.js?v=audio-wave2';
+import {createSpace,palette} from './space.js?v=map-waves1';
+import {createClipPlayer} from './player.js?v=map-waves1';
 import {createSpotifyPlayer} from './spotify.js?v=glass-player1';
+import {createWaveformStore} from './waveforms.js?v=map-waves1';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,clusterThemes:null,semanticProfiles:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0,playback:null};
 const trackIndices=new Map(),views=new Map(),captions=new Map(),affinities=new Map(),pending=new Map();
@@ -44,7 +45,8 @@ const player=createClipPlayer({onError:error,remote:spotify,resolveSource:async 
   const clips=state.playback?.audio;if(!clips)return null;
   return{url:new URL(encodeURIComponent(track.id)+(clips.extension||'.mp3'),new URL(clips.base_url,location.href)).href,start:0,end:clips.duration||30};
 }});
-const space=createSpace({playButton:player.button,chooseSeed:t=>choose(trackIndices.get(t.id)),highlight,isBusy:()=>state.busy,getTrack:id=>basic(trackIndices.get(id)),loadTrack});
+const loadPeaks=createWaveformStore({base:new URL('./data/waveforms/',import.meta.url),indexFor:id=>trackIndices.get(id),count:()=>state.manifest.count});
+const space=createSpace({playButton:player.button,play:player.play,loadPeaks,chooseSeed:t=>choose(trackIndices.get(t.id)),highlight,isBusy:()=>state.busy,getTrack:id=>basic(trackIndices.get(id)),loadTrack});
 function seedPanel(){const track=basic(state.seed);$('#seed-panel').replaceChildren(el('h3','',track.title),el('p','artist',track.artist));}
 function resultTrack(row,map,rank){return{...basic(row.index),score:row.score,rank,cluster:map.groups[row.index]};}
 async function run(){

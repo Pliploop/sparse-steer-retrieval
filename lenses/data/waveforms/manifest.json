@@ -1,0 +1,1 @@
+{"format":1,"bins":64,"shard_size":512,"count":109269,"duration":30,"version":"8fd0cec9e4ee926bd8cf","catalog_sha256":"237e0f0a989ca79fa81eab8e234b57eee6d4bb50b18bee0c015f36da33785c38","encoding":"uint8 relative RMS envelope, 95th percentile normalization, power 1.4"}
