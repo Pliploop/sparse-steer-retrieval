@@ -1,6 +1,6 @@
 import {stylizeControls} from './selectors.js?v=language8';
 import {createSpace,palette} from './space.js?v=glass-player1';
-import {createClipPlayer} from './player.js?v=glass-player1';
+import {createClipPlayer} from './player.js?v=audio-wave1';
 import {createSpotifyPlayer} from './spotify.js?v=glass-player1';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
 const state={manifest:null,clusterThemes:null,semanticProfiles:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0,playback:null};
