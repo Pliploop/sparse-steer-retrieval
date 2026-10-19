@@ -1,8 +1,9 @@
 import {stylizeControls} from './selectors.js?v=language8';
-import {createSpace} from './space.js?v=neighbour-links1';
-import {createSpotifyPlayer} from './spotify.js?v=canvas2';
+import {createSpace,palette} from './space.js?v=glass-player1';
+import {createClipPlayer} from './player.js?v=glass-player1';
+import {createSpotifyPlayer} from './spotify.js?v=glass-player1';
 const $=s=>document.querySelector(s),base=new URL('./data/',import.meta.url);
-const state={manifest:null,clusterThemes:null,semanticProfiles:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0};
+const state={manifest:null,clusterThemes:null,semanticProfiles:null,catalog:null,category:'instrumentation',basis:'text',full:false,seed:0,compare:false,busy:true,request:0,playback:null};
 const trackIndices=new Map(),views=new Map(),captions=new Map(),affinities=new Map(),pending=new Map();
 let sequence=0,searchTimer;
 const syncSelectors=stylizeControls();
@@ -38,9 +39,13 @@ async function loadTrack(id){
   return{...basic(index),caption:text,attributes};
 }
 function highlight(text,attributes=[]){const p=el('p','card-caption');if(!text){p.textContent='Loading description…';return p;}const words=[...new Set(attributes.flatMap(a=>a.label.toLowerCase().match(/[a-z]{4,}/g)||[]))];if(!words.length){p.textContent=text;return p;}const regex=new RegExp('\\b('+words.join('|')+')(?:s|ing|ed)?\\b','gi');let last=0;for(const match of text.matchAll(regex)){p.append(text.slice(last,match.index),el('mark','',match[0]));last=match.index+match[0].length;}p.append(text.slice(last));return p;}
-const player=createSpotifyPlayer({onError:error});
+const spotify=createSpotifyPlayer({onError:error});
+const player=createClipPlayer({onError:error,remote:spotify,resolveSource:async track=>{
+  const clips=state.playback?.audio;if(!clips)return null;
+  return{url:new URL(encodeURIComponent(track.id)+(clips.extension||'.mp3'),new URL(clips.base_url,location.href)).href,start:0,end:clips.duration||30};
+}});
 const space=createSpace({playButton:player.button,chooseSeed:t=>choose(trackIndices.get(t.id)),highlight,isBusy:()=>state.busy,getTrack:id=>basic(trackIndices.get(id)),loadTrack});
-function seedPanel(){const track=basic(state.seed),actions=el('div','seed-actions');actions.append(player.button(track));$('#seed-panel').replaceChildren(el('h3','',track.title),el('p','artist',track.artist),actions);}
+function seedPanel(){const track=basic(state.seed);$('#seed-panel').replaceChildren(el('h3','',track.title),el('p','artist',track.artist));}
 function resultTrack(row,map,rank){return{...basic(row.index),score:row.score,rank,cluster:map.groups[row.index]};}
 async function run(){
   const request=++state.request;error();busy(true);seedPanel();const key=state.full?'full':state.category+'-'+state.basis;
@@ -48,11 +53,12 @@ async function run(){
     const map=await view(key);if(request!==state.request)return;
     const result=await rpc('retrieve',{seed:state.seed,compare:state.compare,view:{key,vectors:map.vectors,dimensions:map.dimensions,invalid:map.invalid}});if(request!==state.request)return;
     const top=new Set(result.results.map(r=>r.index)),baseline=new Set(result.baseline.map(r=>r.index));
-    const shown=new Set([...state.manifest.background,state.seed,...top,...baseline,...map.representatives]);
+    const playingIndex=player.current&&trackIndices.get(player.current.id);
+    const shown=new Set([...state.manifest.background,state.seed,...top,...baseline,...map.representatives,...(Number.isInteger(playingIndex)?[playingIndex]:[])]);
     const plot=[...shown].map(i=>({...basic(i),x:map.coordinates[i*2],y:map.coordinates[i*2+1],cluster:map.groups[i],kind:i===state.seed?'seed':top.has(i)?'result':baseline.has(i)?'base':'background'}));
     const seed={...basic(state.seed),cluster:map.groups[state.seed]};
     const output={seed,category:state.full?state.manifest.categories[0]:category(),basis_method:state.basis,method:state.full?'base':'lens',info:map.info,signature:map.signature,results:result.results.map((row,i)=>resultTrack(row,map,i+1)),baseline:result.baseline.map((row,i)=>resultTrack(row,map,i+1)),representatives:map.representatives.map((index,i)=>resultTrack({index},map,i+1)),plot,clusters:map.clusters,grouping:map.grouping,grouping_version:map.grouping_version};
-    space.render(output,{compare:state.compare});
+    space.render(output,{compare:state.compare});player.setContext({seed,color:id=>id===seed.id?'#f59e0b':palette[map.groups[trackIndices.get(id)]%palette.length]});
     $('#results-subtitle').textContent=`${state.manifest.count.toLocaleString()} songs · ${state.full?'full space':state.basis==='sparse'?'Adam sparse basis':'text basis'} · ${map.dimensions} dimensions`;
     $('#subspace-note').textContent=state.full?'Full 512-dimensional MuQ-MuLan audio similarity.':`${map.dimensions} orthogonal directions retain ${(map.info.variance*100).toFixed(0)}% of member variance.`;
     $('#spectrum').replaceChildren(...(state.full?[]:map.info.spectrum).map((v,i)=>{const bar=el('i',i>=map.info.k?'off':'');bar.style.height=Math.max(2,v*160)+'px';return bar;}));
@@ -73,6 +79,7 @@ window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea
 async function init(){
   try{
     const r=await fetch(new URL('manifest.json',base),{cache:'no-cache'});if(!r.ok)throw Error('The music collection could not load.');state.manifest=await r.json();
+    try{const config=await fetch(new URL('playback.json',import.meta.url),{cache:'no-cache'});if(config.ok)state.playback=await config.json();}catch{}
     const grouping=state.manifest.semantic_groups;if(grouping){try{const response=await fetch(new URL(grouping.path+'?v='+grouping.version,base));if(response.ok)state.semanticProfiles=await response.json();}catch{}}
     const annotations=state.manifest.annotations;if(!state.semanticProfiles&&annotations){try{const response=await fetch(new URL(annotations.path+'?v='+annotations.version,base));if(response.ok)state.clusterThemes=await response.json();}catch{/* The map remains usable without descriptive labels. */}}
     state.catalog=await resource(state.manifest.catalog);state.catalog.tracks.forEach((row,i)=>trackIndices.set(row[0],i));

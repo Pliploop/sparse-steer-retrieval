@@ -129,3 +129,39 @@ html,body.canvas-page{width:100%;height:100%;margin:0;overflow:hidden}.canvas-pa
 /* Named profiles remain compact; secondary density peaks avoid label collisions. */
 .cluster-theme{max-width:190px;white-space:normal;font-size:11px;line-height:1.3;text-align:center}.cluster-theme>span{max-width:174px}.cluster-theme small{font-size:8px;white-space:nowrap}.profile-directory{margin-top:18px;border-top:1px solid var(--stroke);padding-top:13px;font-size:10px;color:var(--quiet)}.profile-directory summary{cursor:pointer;color:var(--text);padding-bottom:8px}.profile-row{display:flex;align-items:center;gap:8px;width:100%;padding:8px 0;text-align:left;font-size:10px;color:var(--text)}.profile-row i{width:6px;height:6px;border-radius:50%;background:var(--cluster);flex:none}.profile-row span{flex:1}.profile-row small{font-size:9px;color:var(--quiet)}.profile-row:hover{background:var(--control-hover)}
 @media(max-width:700px){.cluster-theme{max-width:154px;font-size:10px}.cluster-theme>span{max-width:140px}}
+
+/* A single quiet transport floats above the music; the dock stays unchanged. */
+.canvas-page .canvas-context .seed-panel{display:none}
+.canvas-page .music-player{position:fixed;left:50%;top:20px;right:auto;bottom:auto;transform:translateX(-50%);z-index:66;display:flex;align-items:center;gap:16px;width:min(410px,calc(100vw - 32px));max-width:none;padding:12px 19px 12px 12px;border:1px solid #ffffff70;border-bottom-color:#8e7d5c1a;border-radius:18px;background:rgba(255,255,255,.22);box-shadow:0 6px 26px #4b3a2610,inset 0 1px 0 #ffffff66;backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);color:var(--text)}
+.music-player .player-track{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.music-player .player-track strong{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px;line-height:1.35;font-weight:500;color:var(--text)}
+.music-player .player-track span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;line-height:1.35;color:var(--card-muted)}
+.music-player #player-play{width:36px;height:36px;flex:none;border:1px solid color-mix(in srgb,var(--playing-color) 20%,transparent);border-radius:50%;background:color-mix(in srgb,var(--playing-color) 7%,transparent);color:var(--text);padding:11px;font-size:0;box-shadow:none;transform:none}
+.music-player #player-play::before{content:'';display:block;width:12px;height:12px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m5 3 7 5-7 5Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat}
+.music-player #player-play[aria-pressed=true]::before{mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5 4v8m6-8v8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")}
+.music-player #player-play:hover{background:color-mix(in srgb,var(--playing-color) 14%,transparent)}
+.player-wave{height:29px;width:76px;flex:none;display:flex;align-items:center;justify-content:center;gap:1.5px;color:var(--playing-color);opacity:.65;transition:color .7s,opacity .3s}
+.player-wave i{height:var(--bar-height);width:1.6px;flex:none;border-radius:2px;background:currentColor;transform:scaleY(.24);animation:player-wave var(--bar-duration) var(--bar-delay) ease-in-out infinite alternate;animation-play-state:paused;transition:background .7s}
+.music-player[data-playing=true] .player-wave{opacity:1}.music-player[data-playing=true] .player-wave i{animation-play-state:running}
+@keyframes player-wave{from{transform:scaleY(.24)}to{transform:scaleY(1)}}
+.music-player[data-loading=true] .player-wave{animation:audio-loading 1.2s ease-in-out infinite alternate}@keyframes audio-loading{to{opacity:.25}}
+:root[data-theme=dark] .canvas-page .music-player{background:rgba(255,255,255,.055);border-color:#ffffff1e;box-shadow:0 8px 30px #0002,inset 0 1px 0 #ffffff10}
+/* One compositor-animated beacon, rather than repainting 5,000 dots for a pulse. */
+.playing-beacon{position:absolute;left:0;top:0;z-index:7;pointer-events:none;color:var(--beacon-color)}
+.playing-beacon i{position:absolute;left:0;top:0;width:var(--beacon-size);height:var(--beacon-size);border:1px solid currentColor;border-radius:50%;transform:translate(-50%,-50%);animation:playing-dot 1.8s ease-out infinite}
+.playing-beacon i+i{animation-delay:-.9s}@keyframes playing-dot{from{transform:translate(-50%,-50%) scale(.7);opacity:.65}to{transform:translate(-50%,-50%) scale(2.1);opacity:0}}
+/* Low-opacity glass, a readable title, and one explicit action to move the star. */
+#map-cards .map-card .spatial-content{background:rgba(255,255,255,.28);border:1px solid #ffffff85;border-bottom-color:#8e7d5c1c;border-radius:14px;padding:15px;box-shadow:0 7px 30px #4b3a2612,inset 0 1px 0 #ffffff66;backdrop-filter:blur(28px) saturate(145%);-webkit-backdrop-filter:blur(28px) saturate(145%)}
+:root[data-theme=dark] #map-cards .map-card .spatial-content{background:rgba(255,255,255,.06);border-color:#ffffff24;box-shadow:0 8px 30px #0002,inset 0 1px 0 #ffffff0e}
+.map-card .spatial-title{margin:0;max-height:none;font-size:12px;line-height:1.5;font-weight:500;cursor:default;text-align:left;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.map-card .spatial-artist{margin-top:3px;font-size:10px}.map-card .spatial-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.preview-close{display:grid;place-items:center;width:26px;height:26px;margin:-6px -6px -6px 0;padding:0;font-size:17px;color:var(--card-muted);border-radius:50%;background:transparent}.preview-close:hover{background:#ffffff25;color:var(--text)}
+.map-card .spatial-next{display:flex;align-items:center;gap:8px;width:100%;padding:12px 0 0;margin-top:10px;border-top:1px solid color-mix(in srgb,var(--text) 12%,transparent);font-size:10px;color:var(--text);text-align:left}
+.map-card .spatial-next::after{display:none}.spatial-next svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.3;flex:none}.spatial-next:hover svg{fill:#ffb000;stroke:#ffb000}.map-card .spatial-body .play-button{border-radius:50%;background:#ffffff20;border:1px solid color-mix(in srgb,var(--cluster) 20%,transparent);width:34px;height:34px}
+@media(max-width:1000px){.canvas-page .music-player{top:76px}}
+@media(max-width:700px){.canvas-page .music-player{top:74px;width:min(350px,calc(100vw - 32px));padding:10px 15px 10px 10px;gap:12px;border-radius:16px}.player-wave{width:63px;gap:1px}.player-wave i{width:1.4px}.music-player .player-track strong{font-size:11px}.music-player .player-track span{font-size:9px}.map-card .spatial-next{min-height:44px}.preview-close{width:32px;height:32px}.map-card .spatial-body .play-button{width:40px;height:40px}}
+@media(prefers-reduced-motion:reduce){.player-wave i,.playing-beacon i,.music-player[data-loading=true] .player-wave{animation:none}.music-player[data-playing=true] .player-wave i{transform:scaleY(.65)}.playing-beacon i{opacity:.55}.playing-beacon i+i{display:none}}
+@media(max-width:700px){.canvas-page .zoom-pill{top:143px;bottom:auto;right:16px}}
+/* Native top-layer previews sample the whole canvas for their glass backdrop. */
+.map-card .spatial-content[popover]{position:fixed;inset:auto;margin:0;color:var(--text)}
+.map-card .spatial-content::backdrop{background:transparent;pointer-events:none}

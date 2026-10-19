@@ -7,7 +7,7 @@ There is no app server, API key or audio file in this package.
 
 ## What runs in the browser
 
-All **109,269 Music4All tracks** can be starting songs. The six built-in lenses
+All **109,269 Music4All tracks** can be starting songs. The eight built-in lenses
 include controls and retain 80% of member variance. Each has two basis variants:
 original MuQ-MuLan text vectors, and decoded vectors from the original Adam
 sparse inversion (L0-20 run 66a0caf9, 500 steps, packaged prior).
@@ -17,8 +17,7 @@ browser worker performs cosine search over the entire corpus. Matrices are
 loaded lazily and bounded by a three-view cache. Full-space top ten neighbours
 and scores are precomputed for **every** song, avoiding a 224 MB raw-corpus
 transfer. These are genuine corpus results, not curated or fabricated examples.
-The suggested artists are conveniences; the search field, shuffle and map-card
-titles can select any track.
+The suggested artists are conveniences; the search field, shuffle and the explicit star action in a map card can select any track.
 
 The total data package is about 184 MB, divided across independent files. A
 visitor downloads the catalog and the selected view, then caption and affinity
@@ -26,25 +25,35 @@ shards as needed, rather than the whole package. There is no quantization of
 retrieval vectors or prompt affinities. Floating-point score differences of a
 few millionths between JavaScript and BLAS are expected.
 
-The flat t-SNE map is fitted to 1,000 fixed tracks per view. Other tracks are
+The flat t-SNE map is fitted to 5,000 fixed tracks per view. Other tracks are
 interpolated from eight neighbours. Only the fixed sample and the current
 query/results are drawn. Coordinates are approximate display positions, not
-retrieval distances. Semantic group names are deliberately absent.
+retrieval distances. Optional soft-density group labels reflect caption/metadata profiles; they are separate from retrieval distances and may overlap.
 
 Track captions and original MuQ-MuLan prompt affinities are in 512-track shards.
 Attributes use the largest minimum affinity shared by query and candidate,
 matching the research app. They remain model estimates. Neither custom axes nor
 variance/rank editing are exposed here; those stay in the local research app.
 
-## Spotify
+## Playback
 
-Buttons use the public Spotify iframe API and a single **visible**, unmodified
-152-pixel embed. It is created on demand, replaced on track change and destroyed
-on close. No hidden player, audio extraction, Spotify credentials, or preview
-URL scraping is used. Spotify controls availability and autoplay; the visible
-player and Open in Spotify link remain available when programmatic playback
-is unavailable. The preview may cover a different passage from the Music4All
-captioned clip.
+The top-centre glass transport contains play/pause, activity bars, title and
+artist. Activity bars and a single compositor-animated dot pulse follow the
+actual playback state and current map colour. Bars indicate activity, not
+analysed Spotify audio. Cards open on hover/focus/tap; only their explicit star
+button changes the starting song.
+
+`playback.json` defaults to `audio: null`. Buttons then offer an external Spotify
+link or an explicitly requested **visible**, unmodified 152-pixel Spotify embed.
+No widget is loaded by default and none is hidden during playback. Spotify
+controls availability and autoplay; its preview may cover a different passage
+from the Music4All clip. No Spotify credentials or preview scraping are used.
+
+The same assets support a separate private exact-clip host. Its dynamic
+`playback.json` supplies `audio.base_url`, `audio.extension` and `audio.duration`.
+The browser plays those original 30-second excerpts directly, without Spotify.
+The source checkout's `concept_lab/hf/` contains the private Docker Space and
+read-only private dataset-volume deployment. Private audio is not included here.
 
 - https://developer.spotify.com/documentation/embeds/references/iframe-api
 - https://developer.spotify.com/documentation/embeds/terms
