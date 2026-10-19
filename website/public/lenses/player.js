@@ -20,21 +20,24 @@ export function createTransport({onToggle}){
     const step=Math.floor(samples.length/bars.length);
     for(let i=0;i<bars.length;i++){
       let power=0;for(let j=i*step;j<(i+1)*step;j++)power+=samples[j]*samples[j];
-      const target=Math.min(1,Math.pow(Math.sqrt(power/step),.65)*1.9);
-      levels[i]+=(target-levels[i])*(target>levels[i]?.58:.24);
+      // A soft response keeps loud, mastered clips from pinning every bar at its maximum.
+      const target=1-Math.exp(-Math.sqrt(power/step)*3.2);
+      const smoothing=reducedMotion.matches?(target>levels[i]?.25:.18):(target>levels[i]?.58:.24);
+      levels[i]+=(target-levels[i])*smoothing;
       const height=3+levels[i]*24;
       bars[i].setAttribute('y1',((32-height)/2).toFixed(2));bars[i].setAttribute('y2',((32+height)/2).toFixed(2));
     }
   }
   function animateWave(now){
-    waveFrame=0;if(!playing||!signal||!analyser||document.hidden||reducedMotion.matches)return;
+    waveFrame=0;if(!playing||!signal||!analyser||document.hidden)return;
     // Sample only this 100 × 32 SVG at 30 Hz. Never request a map repaint here.
-    if(now-lastWave>=32){sampleWave();lastWave=now;}
+    // Reduced motion keeps this live audio meter, with gentler updates at 10 Hz.
+    if(now-lastWave>=(reducedMotion.matches?100:32)){sampleWave();lastWave=now;}
     waveFrame=requestAnimationFrame(animateWave);
   }
   function syncWave(){
     wave.dataset.mode=signal&&analyser?'signal':'idle';
-    if(!playing||!signal||!analyser||document.hidden||reducedMotion.matches){cancelAnimationFrame(waveFrame);waveFrame=0;return;}
+    if(!playing||!signal||!analyser||document.hidden){cancelAnimationFrame(waveFrame);waveFrame=0;return;}
     if(!waveFrame){lastWave=-Infinity;waveFrame=requestAnimationFrame(animateWave);}
   }
   reducedMotion.addEventListener('change',syncWave);document.addEventListener('visibilitychange',syncWave);

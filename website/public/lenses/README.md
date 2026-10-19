@@ -39,7 +39,9 @@ variance/rank editing are exposed here; those stay in the local research app.
 
 The top-centre glass transport contains play/pause, activity bars, title and
 artist. A rounded SVG waveform reads live audio samples through Web Audio at 30 Hz;
-its animation stops on pause and stays still with reduced motion enabled.
+its animation stops on pause. Reduced motion uses a gentler 10 Hz live meter
+instead of freezing the audio visualization. A soft amplitude response preserves
+movement in loud clips. The desktop transport is larger; mobile stays compact.
 The waveform and a single compositor-animated dot pulse use the current map colour.
 The waveform does not trigger map redraws. Optional Spotify audio is not analysed. Cards open on hover/focus/tap; only their explicit star
 button changes the starting song.
