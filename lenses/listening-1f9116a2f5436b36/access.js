@@ -23,6 +23,7 @@ export async function setupAccess(){
    document.body.classList.remove('locked');document.dispatchEvent(new CustomEvent('study-unlocked'));
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
  };
+ document.querySelector('#unlock').disabled=false;
  document.querySelector('#lock-room').onclick=async()=>{try{await api('logout',{});lock();}catch(e){lock(e.message);}};
  if(!token)return false;
  try{await api('study');document.body.classList.remove('locked');return true;}catch(e){document.querySelector('#access-error').textContent=e.message;return false;}

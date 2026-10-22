@@ -1,5 +1,5 @@
-import {api,setupAccess,download} from './access.js?v=public-study1';
-import {createClipPlayer} from '../player.js?v=public-study1';
+import {api,setupAccess,download} from './access.js?v=public-study2';
+import {createClipPlayer} from '../player.js?v=public-study2';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],ns='http://www.w3.org/2000/svg';
 const state={study:null,trial:null,grade:null,heard:{reference:0,candidate:0},saving:false,request:null,lastEvent:null,active:null,tick:performance.now(),noticeTimer:0};
 function el(tag,text,cls){const e=document.createElement(tag);if(text!=null)e.textContent=text;if(cls)e.className=cls;return e;}
