@@ -118,6 +118,7 @@ export function createClipPlayer({onError,resolveSource,remote}){
   }
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)transport.refresh();});
   return{play,button,pause,refresh,
+    reset(){pause();selected=null;reference=null;source=null;mode=null;audio.removeAttribute('src');audio.load();refresh();},
     setContext({seed,color}){reference=seed;colorFor=color||colorFor;refresh();},
     get current(){return selected;},get audio(){return audio;}
   };

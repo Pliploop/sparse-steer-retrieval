@@ -1,5 +1,5 @@
 import {createClusterLabels} from './clusters.js?v=language8';
-import {createWaveformLayer} from './waveforms.js?v=map-waves1';
+import {createWaveformLayer} from './waveforms.js?v=all-waves-genre1';
 import {densitySurface} from './density.js?v=language8';
 export const palette=['#635bff','#ff3d71','#00c5e8','#ffb000','#00d99a','#b35cff','#f97316','#2563eb','#9b9284'];
 const $=s=>document.querySelector(s),clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
@@ -176,6 +176,7 @@ export function createSpace({playButton,play,loadPeaks,chooseSeed,highlight,isBu
     $('#map-cards').append(c);cards.set(track.id,c);return c;
   }
   function hit(x,y){
+    const waveform=waveforms.hit(x,y);if(waveform)return waveform;
     const cx=Math.floor(x/32),cy=Math.floor(y/32);let best=null,dist=Infinity;
     for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const p of grid.get((cx+i)+','+(cy+j))||[]){const d=(p.screen.x-x)**2+(p.screen.y-y)**2;if(d<Math.max(10,(p.radius||0)+2)**2&&d<dist){dist=d;best=p;}}
     return best;
@@ -200,7 +201,7 @@ export function createSpace({playButton,play,loadPeaks,chooseSeed,highlight,isBu
     $('#map-explanation').textContent='Zoom in to listen · waveform: play / pause · ⓘ details · ☆ starting song';
     $('#cluster-legend').replaceChildren();resize();
   }
-  canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';if(p&&!waveforms.isVisible(p.id)){touchPreview=false;openCard(p.id);}else closeCard();});
+  canvas.addEventListener('pointermove',e=>{if(drag||e.pointerType==='touch')return;const rect=stage.getBoundingClientRect(),p=hit(e.clientX-rect.left,e.clientY-rect.top);canvas.style.cursor=p?'pointer':'grab';waveforms.hover(p&&waveforms.isVisible(p.id)?p.id:null);if(p&&!waveforms.isVisible(p.id)){touchPreview=false;openCard(p.id);}else closeCard();});
   canvas.addEventListener('pointerleave',e=>{if(!e.relatedTarget?.closest('.map-card'))closeCard();});
   stage.addEventListener('wheel',e=>{if(e.target.closest('.spatial-content'))return;e.preventDefault();closeCard(true);const rect=stage.getBoundingClientRect(),x=e.clientX-rect.left-width/2,y=e.clientY-rect.top-height/2,next=clamp(zoom*Math.exp(-e.deltaY*.0015),.55,16),ratio=next/zoom;pan={x:x-(x-pan.x)*ratio,y:y-(y-pan.y)*ratio};zoom=next;schedule();},{passive:false});
   function touchPose(){
@@ -219,7 +220,7 @@ export function createSpace({playButton,play,loadPeaks,chooseSeed,highlight,isBu
         return;
       }
     }
-    drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y,id:e.target.closest('.music-wave,.map-card')?.dataset.track};moved=false;canvas.style.cursor='grabbing';
+    const bounds=stage.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y,id:e.target.closest('.music-wave,.map-card')?.dataset.track||hit(e.clientX-bounds.left,e.clientY-bounds.top)?.id};moved=false;canvas.style.cursor='grabbing';
     if(e.pointerType==='touch'&&drag.id&&waveforms.isVisible(drag.id))longPressTimer=setTimeout(()=>{if(drag&&!moved&&!pinch){longPressed=true;waveforms.inspect(drag.id);}},500);
   });
   window.addEventListener('pointermove',e=>{
