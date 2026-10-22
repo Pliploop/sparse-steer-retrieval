@@ -48,8 +48,9 @@ button changes the starting song.
 
 Zoom into the map to resolve dots into actual frozen clip envelopes. The 64-bin
 relative RMS summaries cover all 109,269 clips (7 MB total), loaded in small
-catalog shards only as needed. Collision-aware thumbnails keep labels readable;
-tracks without room remain dots. Click/tap a waveform to play/pause. Only the
+catalog shards only as needed. Every on-frame track is drawn as a waveform when zoomed in; only labels and
+controls use collision avoidance. Dense areas use smaller envelopes that grow
+with the available space as you zoom. Click/tap a waveform to play/pause. Only the
 playing map waveform uses a live SVG, driven by the same samples as the top
 player; its frames do not redraw the cloud. Info opens the glass card separately,
 and the star changes the starting song. Mobile long press opens details and never

@@ -38,7 +38,7 @@ export function createWaveformStore({base,indexFor,count}){
 export function createWaveformLayer({stage,points,loadPeaks,play,inspect,chooseSeed,trackFor,schedule}){
   const layer=element('div','music-waveforms');layer.id='music-waveforms';layer.dataset.loading='0';stage.append(layer);
   const glyphs=new Map(),peaks=new Map(),pending=new Set(),failed=new Map();
-  let selected=null,playing=null,requestTimer=0,selectionTime=-Infinity,frameTime=0,liveLevels=null,reveal=0,revealTime=0;
+  let selected=null,playing=null,hovered=null,requestTimer=0,selectionTime=-Infinity,frameTime=0,liveLevels=null,reveal=0,revealTime=0,hitGrid=new Map();
   const queue=new Set();
   function request(ids){
     for(const id of ids)if(!peaks.has(id)&&!pending.has(id)&&(failed.get(id)||0)<performance.now()){pending.add(id);queue.add(id);}
@@ -54,7 +54,7 @@ export function createWaveformLayer({stage,points,loadPeaks,play,inspect,chooseS
   function select(id){selected=id;selectionTime=-Infinity;schedule();}
   function activate(id){const p=points.get(id);if(!p)return;select(id);play(trackFor(p));}
   function showInfo(id){select(id);inspect(id);}
-  function make(p){
+  function mount(p,g){
     const root=element('div','music-wave');root.dataset.track=p.id;
     const button=element('button','wave-play');button.type='button';button.title=`Play / pause ${p.title}`;
     // Pointer gestures are resolved by the map, so a drag/pinch cannot play.
@@ -68,9 +68,12 @@ export function createWaveformLayer({stage,points,loadPeaks,play,inspect,chooseS
     star.setAttribute('aria-label',`Use ${p.title} as starting song`);star.title='Use as starting song';star.append(icon('star'));
     info.onclick=e=>{e.stopPropagation();showInfo(p.id);};star.onclick=e=>{e.stopPropagation();const current=points.get(p.id);if(current&&current.kind!=='seed')chooseSeed(trackFor(current));};
     actions.append(info,star);root.append(button,label,actions);layer.append(root);
-    return{root,button,badge,live,bars,star,reveal:0,from:0,target:1,start:frameTime,base:new Float32Array(25),width:80};
+    root.onpointerenter=e=>{if(e.pointerType==='mouse')hover(p.id);};root.onpointerleave=e=>{if(e.pointerType==='mouse')hover(null);};
+    return Object.assign(g,{root,button,badge,live,bars,star});
   }
+  function hover(id){if(hovered!==id){hovered=id;selectionTime=-Infinity;schedule();}}
   function liveShape(g,levels){
+    if(!g.root)mount(points.get(g.id),g);
     if(!g.bars.length)for(let i=0;i<25;i++){const line=document.createElementNS(ns,'line');line.setAttribute('x1',2+i*4);line.setAttribute('x2',2+i*4);g.live.append(line);g.bars.push(line);}
     for(let i=0;i<25;i++){const h=3+levels[i]*24;g.bars[i].setAttribute('y1',((32-h)/2).toFixed(2));g.bars[i].setAttribute('y2',((32+h)/2).toFixed(2));}
   }
@@ -92,39 +95,50 @@ export function createWaveformLayer({stage,points,loadPeaks,play,inspect,chooseS
     layer.dataset.reveal=reveal.toFixed(3);layer.dataset.selected=selected||'';
     if(!reveal&&!glyphs.size){layer.dataset.count='0';return;}
     for(const p of points.values())p.waveReveal=0;
-    if(now-selectionTime>=100&&(!transitioning||!glyphs.size)){
+    if(now-selectionTime>=100){
       selectionTime=now;
-      const occupied=[],chosen=new Set(),candidates=[...points.values()].filter(p=>p.screen&&p.screen.x>15&&p.screen.x<width-15&&p.screen.y>15&&p.screen.y<height-15);
-      const priority=p=>p.id===selected?0:p.id===playing?1:p.kind==='seed'?2:p.kind==='result'?3:glyphs.has(p.id)?4:5;
+      const occupied=[],chosen=new Set(),labels=new Set(),candidates=[...points.values()].filter(p=>p.screen&&p.screen.x>=0&&p.screen.x<=width&&p.screen.y>=0&&p.screen.y<=height);
+      layer.dataset.viewportCount=candidates.length;
+      const priority=p=>p.id===selected?0:p.id===playing?1:p.id===hovered?2:p.kind==='seed'?3:p.kind==='result'?4:glyphs.get(p.id)?.root?5:6;
       candidates.sort((a,b)=>priority(a)-priority(b)||((a.screen.x-width/2)**2+(a.screen.y-height/2)**2)-((b.screen.x-width/2)**2+(b.screen.y-height/2)**2));
       const rect=stage.getBoundingClientRect();
       for(const e of document.querySelectorAll('.floating-controls,.top-left-tools,.top-right-tools,.zoom-pill,#player:not([hidden]),#cluster-labels[data-visible=true] button')){const r=e.getBoundingClientRect();occupied.push({x:r.x-rect.x-10,y:r.y-rect.y-8,w:r.width+20,h:r.height+16});}
+      // Every on-frame track gets a frozen waveform. Only labels and DOM controls
+      // are collision-limited; the complete waveform layer stays in the canvas.
       if(reveal>0)for(const p of candidates){
-        if(chosen.size>=Math.min(190,Math.floor(width*height/4800)))break;
+        chosen.add(p.id);
+        if(labels.size>=Math.min(150,Math.floor(width*height/4800))&&p.id!==hovered&&p.id!==selected&&p.id!==playing)continue;
         const special=p.id===selected||p.id===playing,w=Math.max(waveWidth+(special?24:0),reveal>.45?(width<700?116:140):0);
         const below=p.screen.y<(width<1000?210:150);
         const r={x:p.screen.x-w/2-7,y:p.screen.y-(special&&!below?75:25),w:w+14,h:reveal>.45?(special?140:78):46};
-        if(r.x<5||r.x+r.w>width-5||r.y<5||r.y+r.h>height-7)continue;
-        if(occupied.some(b=>r.x<b.x+b.w&&r.x+r.w>b.x&&r.y<b.y+b.h&&r.y+r.h>b.y))continue;
-        chosen.add(p.id);occupied.push(r);
+        if(!special&&p.id!==hovered&&(r.x<5||r.x+r.w>width-5||r.y<5||r.y+r.h>height-7||occupied.some(b=>r.x<b.x+b.w&&r.x+r.w>b.x&&r.y<b.y+b.h&&r.y+r.h>b.y)))continue;
+        labels.add(p.id);occupied.push(r);
       }
+      if(transitioning)for(const id of [selected,playing])if(points.has(id)){chosen.add(id);labels.add(id);}
       request([...chosen]);
       for(const[id,g]of glyphs){const target=chosen.has(id)&&peaks.has(id)?1:0;if(g.target!==target){g.from=g.reveal;g.target=target;g.start=now;}}
       for(const id of chosen)if(peaks.has(id)&&!glyphs.has(id)){
-        const p=points.get(id),g=make(p),values=peaks.get(id);for(let i=0;i<25;i++){const lo=Math.floor(i*64/25),hi=Math.floor((i+1)*64/25);let sum=0;for(let j=lo;j<hi;j++)sum+=values[j];g.base[i]=sum/(hi-lo)/255;}glyphs.set(id,g);
+        const g={id,root:null,bars:[],reveal:0,from:0,target:1,start:frameTime,base:new Float32Array(25),width:80},values=peaks.get(id);for(let i=0;i<25;i++){const lo=Math.floor(i*64/25),hi=Math.floor((i+1)*64/25);let sum=0;for(let j=lo;j<hi;j++)sum+=values[j];g.base[i]=sum/(hi-lo)/255;}glyphs.set(id,g);
       }
+      for(const[id,g]of glyphs){if(labels.has(id)&&!g.root)mount(points.get(id),g);else if(!labels.has(id)&&g.root&&!g.root.contains(document.activeElement)){g.root.remove();g.root=null;g.bars=[];}}
     }
-    let moving=false;
+    let moving=false;hitGrid=new Map();
+    const nearby=new Map();for(const p of points.values()){if(!p.screen)continue;const key=Math.floor(p.screen.x/64)+','+Math.floor(p.screen.y/64);if(!nearby.has(key))nearby.set(key,[]);nearby.get(key).push(p);}
     for(const[id,g]of glyphs){
-      const p=points.get(id);if(!p){g.root.remove();glyphs.delete(id);continue;}
+      const p=points.get(id);if(!p){g.root?.remove();glyphs.delete(id);continue;}
       const t=clamp((now-g.start)/220,0,1);g.reveal=g.from+(g.target-g.from)*(t*t*(3-2*t));if(t<1)moving=true;
-      if(g.target===0&&t===1){g.root.remove();glyphs.delete(id);continue;}
+      if(g.target===0&&t===1){g.root?.remove();glyphs.delete(id);continue;}
       const amount=g.reveal*reveal;p.waveReveal=amount;g.amount=amount;
       const active=id===playing,expanded=id===selected||active,scale=expanded?1.12:1;
-      g.width=waveWidth*scale;g.height=28*scale;
+      let spacing=waveWidth/0.72;const cx=Math.floor(p.screen.x/64),cy=Math.floor(p.screen.y/64);
+      for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(const q of nearby.get((cx+x)+','+(cy+y))||[])if(q!==p)spacing=Math.min(spacing,Math.hypot(q.screen.x-p.screen.x,q.screen.y-p.screen.y));
+      g.width=expanded||id===hovered?waveWidth*scale:clamp(spacing*.72,14,waveWidth);g.height=expanded||id===hovered?28*scale:Math.max(7,28*g.width/waveWidth);
+      if(p.kind==='result'&&!expanded&&id!==hovered){g.width=Math.min(waveWidth,g.width*1.25);g.height=Math.max(7,28*g.width/waveWidth);}
       const c=p.current;g.color=p.kind==='seed'?'#f59e0b':`rgb(${Math.round(c.r)},${Math.round(c.g)},${Math.round(c.b)})`;
+      if(amount>.35)for(let x=Math.floor((p.screen.x-g.width/2)/32);x<=Math.floor((p.screen.x+g.width/2)/32);x++)for(let y=Math.floor((p.screen.y-15)/32);y<=Math.floor((p.screen.y+15)/32);y++){const key=x+','+y;if(!hitGrid.has(key))hitGrid.set(key,[]);hitGrid.get(key).push(g);}
+      if(!g.root)continue;
       g.root.style.transform=`translate(${p.screen.x}px,${p.screen.y}px)`;g.root.style.width=g.width+'px';g.root.style.setProperty('--wave-color',g.color);g.root.style.opacity=amount;
-      g.root.style.setProperty('--wave-label-opacity',clamp((reveal-.35)/.5,0,1));g.root.style.setProperty('--wave-scale',scale);g.root.style.setProperty('--wave-morph',amount);
+      g.root.style.setProperty('--wave-label-opacity',clamp((reveal-.35)/.5,0,1));g.root.style.setProperty('--wave-scale',scale);g.root.style.setProperty('--wave-morph',amount);g.root.style.setProperty('--wave-height',g.height+'px');
       g.root.style.setProperty('--wave-actions-top',p.screen.y<(width<1000?210:150)?'59px':width<700?'-65px':'-54px');
       g.root.classList.toggle('is-selected',id===selected);g.root.classList.toggle('is-playing',active);g.root.classList.toggle('is-seed',p.kind==='seed');
       g.root.dataset.live=String(active&&!!liveLevels);g.root.dataset.kind=p.kind;
@@ -134,23 +148,26 @@ export function createWaveformLayer({stage,points,loadPeaks,play,inspect,chooseS
       g.star.disabled=p.kind==='seed';g.star.setAttribute('aria-label',p.kind==='seed'?'Current starting song':`Use ${p.title} as starting song`);
       if(active&&liveLevels)liveShape(g,liveLevels);
     }
-    layer.dataset.count=glyphs.size;if(moving)schedule();
+    layer.dataset.count=glyphs.size;layer.dataset.controls=layer.children.length;if(moving)schedule();
   }
   function draw(ctx){
     ctx.lineCap='round';
-    for(const[id,g]of glyphs){
+    let rendered=0;for(const[id,g]of glyphs){
       const p=points.get(id),a=g.amount;if(!p?.screen||a<=0)continue;
+      if(p.screen.x>=0&&p.screen.x<=ctx.canvas.clientWidth&&p.screen.y>=0&&p.screen.y<=ctx.canvas.clientHeight)rendered++;
       // The live SVG replaces only this shape, without repainting any other track.
       ctx.globalAlpha=(id===playing&&liveLevels?0:1)*a*(p.kind==='background'?.8:1);ctx.strokeStyle=g.color;
       const w=(p.radius*2+(g.width-p.radius*2)*a),h=g.height*a;
       ctx.lineWidth=Math.max(1.25,w/42);ctx.beginPath();
-      for(let i=0;i<25;i++){const x=p.screen.x-w/2+(i+.5)*w/25,v=2+g.base[i]*(h-2);ctx.moveTo(x,p.screen.y-v/2);ctx.lineTo(x,p.screen.y+v/2);}ctx.stroke();
+      const bars=clamp(Math.floor(w/3),5,25);for(let i=0;i<bars;i++){const x=p.screen.x-w/2+(i+.5)*w/bars,v=2+g.base[Math.floor(i*25/bars)]*(h-2);ctx.moveTo(x,p.screen.y-v/2);ctx.lineTo(x,p.screen.y+v/2);}ctx.stroke();
+      if(p.kind==='seed'){ctx.save();ctx.globalAlpha=a;ctx.translate(p.screen.x-w/2-8,p.screen.y);ctx.scale(.65,.65);ctx.fillStyle='#f59e0b';ctx.strokeStyle=getComputedStyle(stage).backgroundColor;ctx.lineWidth=1.6;const star=new Path2D(STAR);ctx.fill(star);ctx.stroke(star);ctx.restore();}
     }
+    layer.dataset.renderedCount=rendered;
     ctx.globalAlpha=1;ctx.lineCap='butt';
   }
-  return{update,draw,activate,inspect:showInfo,select,isVisible:id=>(glyphs.get(id)?.amount||0)>.35,
-    get reveal(){return reveal;},
-    isHovered:id=>!!glyphs.get(id)?.root.matches(':hover'),
-    clear(){for(const g of glyphs.values())g.root.remove();glyphs.clear();selected=null;selectionTime=-Infinity;layer.dataset.count='0';},
+  return{update,draw,activate,inspect:showInfo,select,hover,hit(x,y){let best=null,d=Infinity;for(const g of hitGrid.get(Math.floor(x/32)+','+Math.floor(y/32))||[]){const p=points.get(g.id),dx=x-p.screen.x,dy=y-p.screen.y,dist=dx*dx+dy*dy;if(Math.abs(dx)<=Math.max(8,g.width/2)&&Math.abs(dy)<=15&&dist<d){best=p;d=dist;}}return best;},isVisible:id=>(glyphs.get(id)?.amount||0)>.35,
+    get reveal(){return reveal*Math.min(1,glyphs.size/Math.max(1,Number(layer.dataset.viewportCount)||1));},
+    isHovered:id=>!!glyphs.get(id)?.root?.matches(':hover'),
+    clear(){for(const g of glyphs.values())g.root?.remove();glyphs.clear();selected=null;selectionTime=-Infinity;layer.dataset.count='0';},
   };
 }
